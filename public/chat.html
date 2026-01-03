@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lounge | Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #09090b; color: #fafafa; overflow: hidden; }
+        .glass { background: rgba(24, 24, 27, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .chat-height { height: calc(100vh - 160px); }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
+    </style>
+</head>
+<body class="h-screen flex p-4 gap-4">
+
+    <!-- Sidebar -->
+    <aside class="w-80 glass rounded-3xl flex flex-col overflow-hidden shrink-0 hidden md:flex">
+        <div class="p-6 border-b border-zinc-800 flex items-center justify-between">
+            <h2 class="font-800 text-xl tracking-tighter text-indigo-400 uppercase italic">LOUNGE</h2>
+            <span id="user-count" class="bg-indigo-500/10 text-indigo-400 text-[10px] px-2 py-1 rounded-full font-bold">0 Online</span>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-2" id="user-list"></div>
+        <div class="p-4 border-t border-zinc-800 bg-zinc-900/30">
+            <button onclick="logout()" class="w-full py-2 text-xs font-bold text-zinc-500 hover:text-red-400 transition-colors uppercase tracking-widest">Logout</button>
+        </div>
+    </aside>
+
+    <!-- Chat -->
+    <main class="flex-1 glass rounded-3xl flex flex-col overflow-hidden">
+        <div id="message-container" class="flex-1 overflow-y-auto p-6 space-y-4 chat-height"></div>
+        <div class="p-6 pt-0">
+            <form id="chat-form" class="flex gap-3 bg-zinc-900/50 p-2 rounded-2xl border border-zinc-800">
+                <input type="text" id="msg-input" autocomplete="off" class="flex-1 bg-transparent border-none outline-none px-4 py-3 text-sm text-white" placeholder="Message...">
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white w-12 h-12 rounded-xl flex items-center justify-center transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        const socket = io();
+        const profile = JSON.parse(localStorage.getItem('chat_profile'));
+
+        if (!profile) window.location.href = '/';
+
+        socket.emit('join', profile);
+
+        socket.on('message', (data) => {
+            const container = document.getElementById('message-container');
+            const div = document.createElement('div');
+            if (data.system) {
+                div.innerHTML = `<div class="text-center"><span class="text-[10px] text-zinc-500 uppercase font-bold">${data.text}</span></div>`;
+            } else {
+                const isMe = data.username === profile.username;
+                div.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
+                div.innerHTML = `
+                    <div class="max-w-[70%] ${isMe ? 'bg-indigo-600' : 'bg-zinc-800'} p-3 rounded-2xl shadow-lg">
+                        <p class="text-[10px] font-bold opacity-50 mb-1">${data.username}</p>
+                        <p class="text-sm">${data.text}</p>
+                    </div>
+                `;
+            }
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        });
+
+        socket.on('userListUpdate', (users) => {
+            document.getElementById('user-count').innerText = `${users.length} Online`;
+            const list = document.getElementById('user-list');
+            list.innerHTML = users.map(u => `
+                <div class="flex items-center gap-3 p-2 rounded-xl bg-zinc-900/50 border border-white/5">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-xs font-bold text-indigo-400">${u.username[0]}</div>
+                    <span class="text-sm font-bold">${u.username}</span>
+                </div>
+            `).join('');
+        });
+
+        document.getElementById('chat-form').onsubmit = (e) => {
+            e.preventDefault();
+            const input = document.getElementById('msg-input');
+            if (input.value.trim()) {
+                socket.emit('sendMessage', input.value);
+                input.value = '';
+            }
+        };
+
+        function logout() { localStorage.removeItem('chat_profile'); window.location.href = '/'; }
+    </script>
+</body>
+</html>
