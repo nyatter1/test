@@ -24,8 +24,6 @@
             margin: 0;
             overflow: hidden;
             display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         /* --- AUTH STYLES --- */
@@ -39,18 +37,21 @@
             position: fixed;
             inset: 0;
             z-index: 100;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .login-card {
             background: var(--panel-bg);
             padding: 2.5rem;
-            border-radius: 2rem;
+            border-radius: 1.5rem; /* Slightly tighter corners for square look */
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-            width: 100%;
-            max-width: 420px;
+            width: 500px; /* Forced Width */
+            height: 500px; /* Forced Height to make it a square */
             border: 1px solid var(--border-color);
             animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         @keyframes slideUp {
@@ -62,12 +63,12 @@
             width: 100%;
             background: #0f172a;
             border: 2px solid #334155;
-            border-radius: 0.875rem;
-            padding: 0.875rem 1.25rem;
+            border-radius: 0.75rem;
+            padding: 0.65rem 1rem;
             color: white;
             outline: none;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 0.95rem;
+            font-size: 0.85rem;
         }
 
         .input-field:focus {
@@ -89,22 +90,23 @@
 
         label {
             display: block;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.1em;
             color: #94a3b8;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.35rem;
             margin-left: 0.25rem;
         }
 
-        /* --- CHAT INTERFACE STYLES --- */
+        /* --- MAIN APP LAYOUT --- */
         .main-app-container {
             display: grid;
             grid-template-columns: 260px 1fr 300px;
             width: 100%;
             height: 100vh;
             background: var(--bg-dark);
+            overflow: hidden;
         }
 
         @media (max-width: 1100px) {
@@ -117,20 +119,19 @@
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
-            z-index: 10;
-            height: 100vh; /* Fixed height for panels */
+            height: 100vh;
+            overflow: hidden;
         }
 
-        .right-panel {
-            border-right: none;
-            border-left: 1px solid var(--border-color);
-        }
-
-        .sidebar-scrollable {
+        .scroll-area {
             flex: 1;
             overflow-y: auto;
-            padding-top: 1.5rem;
+            scrollbar-width: thin;
+            scrollbar-color: #334155 transparent;
         }
+
+        .scroll-area::-webkit-scrollbar { width: 5px; }
+        .scroll-area::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
 
         .sidebar-btn {
             display: flex;
@@ -148,17 +149,8 @@
             color: #94a3b8;
         }
 
-        .sidebar-btn:hover {
-            background: rgba(255, 255, 255, 0.05);
-            color: white;
-            transform: translateX(4px);
-        }
-
-        .sidebar-btn.active {
-            background: var(--primary);
-            color: white;
-            box-shadow: 0 8px 20px -6px rgba(124, 58, 237, 0.4);
-        }
+        .sidebar-btn:hover { background: rgba(255, 255, 255, 0.05); color: white; }
+        .sidebar-btn.active { background: var(--primary); color: white; }
 
         .messages-container {
             flex: 1;
@@ -168,44 +160,31 @@
             flex-direction: column;
             gap: 1.25rem;
             background: radial-gradient(circle at center, #111827 0%, #0f172a 100%);
-            scroll-behavior: smooth;
         }
 
-        .chat-input-area {
-            background: var(--panel-bg);
-            padding: 1.5rem;
-            border-top: 1px solid var(--border-color);
-            flex-shrink: 0;
-        }
-
-        .input-box-wrapper {
-            background: #334155;
-            border: 2px solid #475569;
+        .msg-bubble {
+            max-width: 75%;
+            padding: 0.85rem 1.25rem;
             border-radius: 1.25rem;
-            display: flex;
-            align-items: center;
-            padding: 0.35rem 1rem;
-            max-width: 1000px;
-            margin: 0 auto;
-            width: 100%;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.2);
+            word-wrap: break-word;
         }
+
+        .msg-own { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: white; border-bottom-right-radius: 0.25rem; align-self: flex-end; }
+        .msg-other { background: #1e293b; color: #e2e8f0; border-bottom-left-radius: 0.25rem; align-self: flex-start; border: 1px solid rgba(255,255,255,0.05); }
 
         .avatar {
             width: 42px;
             height: 42px;
             border-radius: 12px;
-            background: #475569;
+            background: #334155;
             flex-shrink: 0;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-
-        .avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
 
         .status-dot {
             position: absolute;
@@ -214,69 +193,11 @@
             width: 12px;
             height: 12px;
             border-radius: 50%;
-            border: 2.5px solid var(--panel-bg);
+            border: 2px solid var(--panel-bg);
         }
-
-        .dot-online { background: #10b981; box-shadow: 0 0 8px #10b981; }
-        .dot-offline { background: #64748b; }
-
-        .msg-bubble {
-            max-width: 75%;
-            padding: 0.85rem 1.25rem;
-            border-radius: 1.25rem;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            position: relative;
-            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.2);
-            word-wrap: break-word;
-        }
-
-        .msg-own {
-            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-            color: white;
-            border-bottom-right-radius: 0.25rem;
-        }
-
-        .msg-other {
-            background: #1e293b;
-            color: #e2e8f0;
-            border-bottom-left-radius: 0.25rem;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .system-msg {
-            font-size: 11px;
-            background: rgba(51, 65, 85, 0.4);
-            padding: 6px 16px;
-            border-radius: 99px;
-            color: #94a3b8;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin: 1rem auto;
-            backdrop-filter: blur(4px);
-        }
+        .dot-online { background: #10b981; }
 
         .hidden { display: none !important; }
-        
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
-
-        /* Custom Modal */
-        .modal-overlay {
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(8px);
-            z-index: 200;
-        }
-
-        .shimmer {
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
-            background-size: 200% 100%;
-            animation: shimmer 2s infinite;
-        }
-        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
     </style>
 </head>
 <body>
@@ -284,229 +205,114 @@
     <!-- AUTH SECTION -->
     <div id="auth-section" class="auth-container">
         <div class="login-card">
-            <div class="text-center mb-8">
-                <div class="inline-block p-4 bg-purple-600/20 rounded-2xl mb-4 border border-purple-500/20">
-                    <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
-                </div>
-                <h1 id="auth-title" class="text-4xl font-black tracking-tighter text-white">SIGN UP</h1>
-                <p id="auth-desc" class="text-slate-400 text-sm mt-2 font-medium">Join the most exclusive digital lounge</p>
+            <div class="text-center mb-6">
+                <h1 id="auth-title" class="text-3xl font-black tracking-tighter text-white">SIGN UP</h1>
+                <p id="auth-desc" class="text-slate-400 text-xs mt-1 font-medium">Join the Lounge community</p>
             </div>
 
-            <div id="message-box" class="hidden animate-bounce"></div>
+            <div id="auth-error" class="hidden p-3 rounded-xl text-[10px] font-bold mb-4 bg-red-500/10 text-red-400 border border-red-500/20"></div>
 
-            <form id="auth-form" class="space-y-4">
-                <div class="space-y-4">
+            <form id="auth-form" class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label>Identity (Username or Email)</label>
-                        <input type="text" id="auth-username" required maxlength="25" class="input-field" placeholder="User123 or email@example.com">
+                        <label>Username</label>
+                        <input type="text" id="auth-username" required class="input-field" placeholder="User123">
                     </div>
-
                     <div>
-                        <label>Secret Key (Password)</label>
-                        <input type="password" id="auth-password" required minlength="4" class="input-field" placeholder="••••••••">
+                        <label>Password</label>
+                        <input type="password" id="auth-password" required class="input-field" placeholder="••••">
                     </div>
-
-                    <div id="signup-only-email">
-                        <label>Verification Email</label>
-                        <input type="email" id="auth-email" class="input-field" placeholder="you@domain.com">
+                </div>
+                
+                <div id="signup-fields" class="space-y-3">
+                    <div>
+                        <label>Email Address</label>
+                        <input type="email" id="auth-email" class="input-field" placeholder="you@example.com">
                     </div>
-
-                    <div id="signup-only-details" class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label>Age</label>
                             <select id="auth-age" class="input-field"></select>
                         </div>
                         <div>
-                            <label>Species / Gender</label>
+                            <label>Species</label>
                             <select id="auth-gender" class="input-field">
                                 <option value="Male">Male</option>
                                 <option value="Female">Female</option>
-                                <option value="Table">Table</option>
-                                <option value="Egg">Egg</option>
-                                <option value="Microwave">Microwave</option>
-                                <option value="Attack Helicopter">Attack Helicopter</option>
                                 <option value="Potato">Potato</option>
-                                <option value="Toaster">Toaster</option>
-                                <option value="Cactus">Cactus</option>
                                 <option value="Alien">Alien</option>
                                 <option value="Ghost">Ghost</option>
                                 <option value="Unicorn">Unicorn</option>
-                                <option value="Rock">Rock</option>
                             </select>
                         </div>
                     </div>
                 </div>
-
-                <button type="submit" id="submit-btn" class="w-full btn-gradient py-4 rounded-2xl font-black text-white shadow-xl uppercase tracking-widest text-sm mt-6 hover:brightness-110">
+                <button type="submit" id="submit-btn" class="w-full btn-gradient py-3.5 rounded-xl font-black text-white shadow-xl uppercase tracking-widest text-xs mt-2">
                     Initialize Profile
                 </button>
             </form>
 
-            <div class="mt-8 pt-6 border-t border-slate-700/50 text-center">
-                <button onclick="toggleAuth()" id="toggle-link" class="text-[11px] font-black text-purple-400 hover:text-white uppercase tracking-widest transition-all">
+            <div class="mt-4 pt-4 border-t border-slate-700/50 text-center">
+                <button onclick="toggleAuthMode()" id="toggle-link" class="text-[10px] font-black text-purple-400 hover:text-white uppercase tracking-widest transition-all">
                     Already a member? Secure Log In
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- MAIN CHAT APP SECTION -->
+    <!-- MAIN APP SECTION -->
     <div id="app-section" class="main-app-container hidden">
-        <!-- LEFT NAVIGATION -->
-        <aside class="panel side-panel">
-            <div class="sidebar-scrollable">
-                <nav>
-                    <button onclick="openModal('staff')" class="sidebar-btn">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                        <span class="side-panel-text">Staff HQ</span>
-                    </button>
-                    
-                    <button onclick="toggleStatus()" id="status-btn" class="sidebar-btn active">
-                        <span id="status-dot-indicator" class="w-2.5 h-2.5 bg-green-500 rounded-full shadow-[0_0_8px_#10b981]"></span>
-                        <span class="side-panel-text">Status: Online</span>
-                    </button>
-
-                    <button onclick="openModal('rules')" class="sidebar-btn">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                        <span class="side-panel-text">The Laws</span>
-                    </button>
-                    
-                    <!-- Added empty space to demonstrate scrolling if items increase -->
-                    <div class="h-10"></div>
-                </nav>
+        <!-- Sidebar -->
+        <aside class="panel">
+            <div class="p-6 flex items-center gap-3">
+                <div class="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-purple-900/20">
+                    L
+                </div>
+                <div class="text-xl font-black text-white tracking-tighter side-panel-text uppercase">Lounge</div>
             </div>
-
-            <div class="mt-auto px-4 py-6 border-t border-white/5">
-                <div class="p-3 bg-slate-800/40 rounded-2xl border border-white/5">
-                    <div class="flex items-center gap-3">
-                        <div class="avatar border-2 border-purple-500/30">
-                            <img id="me-avatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=user" alt="Me">
-                        </div>
-                        <div class="overflow-hidden side-panel-text">
-                            <div id="me-name" class="text-xs font-extrabold text-white truncate">User</div>
-                            <div class="text-[9px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-1">
-                                <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Active
-                            </div>
-                        </div>
-                        <button onclick="logout()" class="ml-auto text-slate-500 hover:text-red-400 side-panel-text">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                        </button>
+            <div class="scroll-area">
+                <button class="sidebar-btn active">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    <span class="side-panel-text">General Stream</span>
+                </button>
+            </div>
+            <div class="p-4 border-t border-white/5 mt-auto">
+                <div class="flex items-center gap-3 bg-slate-800/50 p-3 rounded-2xl">
+                    <div class="avatar border border-purple-500/30">
+                        <img id="me-avatar" src="" alt="">
                     </div>
+                    <div class="overflow-hidden side-panel-text">
+                        <div id="me-name" class="text-xs font-black text-white truncate">User</div>
+                        <div class="text-[9px] text-green-500 font-bold uppercase">Online</div>
+                    </div>
+                    <button onclick="logout()" class="ml-auto text-slate-500 hover:text-red-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    </button>
                 </div>
             </div>
         </aside>
 
-        <!-- CENTER CHAT AREA -->
-        <main class="flex flex-col relative overflow-hidden h-100vh">
-            <header class="h-16 flex items-center justify-between px-8 bg-slate-900/50 backdrop-blur-md border-b border-white/5 flex-shrink-0">
-                <div class="flex items-center gap-4">
-                    <div>
-                        <h1 class="font-black text-base text-white tracking-tight uppercase">Main Stream</h1>
-                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Public Channel</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="flex -space-x-3">
-                        <div class="w-8 h-8 rounded-full border-2 border-slate-900 bg-slate-800 flex items-center justify-center text-[10px] font-bold">+</div>
-                    </div>
-                </div>
+        <!-- Chat Area -->
+        <main class="flex flex-col h-full overflow-hidden bg-slate-900">
+            <header class="h-16 flex items-center px-8 border-b border-white/5 bg-slate-900/50 backdrop-blur">
+                <h1 class="font-black text-white uppercase text-sm tracking-widest">Main Stream</h1>
             </header>
-
-            <div class="messages-container" id="chat-messages">
-                <!-- Messages populate here -->
-            </div>
-
-            <div class="chat-input-area">
-                <form id="chat-form" class="input-box-wrapper">
-                    <button type="button" class="p-2 text-slate-400 hover:text-white transition-colors">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </button>
-                    <input type="text" id="message-input" placeholder="Type your message here..." class="bg-transparent border-none text-white flex-1 p-3 outline-none font-medium placeholder:text-slate-500" autocomplete="off">
-                    <button type="submit" class="btn-gradient text-white px-6 py-2.5 rounded-xl font-black text-xs shadow-lg flex items-center gap-2">
-                        SEND <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path></svg>
-                    </button>
+            <div class="messages-container" id="chat-messages"></div>
+            <div class="p-6 bg-slate-800/50 border-t border-white/5">
+                <form id="chat-form" class="flex gap-4 max-w-4xl mx-auto">
+                    <input type="text" id="message-input" placeholder="Say something..." class="flex-1 bg-slate-900 border-2 border-slate-700 rounded-2xl px-6 py-3 text-white outline-none focus:border-purple-500 transition-all">
+                    <button type="submit" class="btn-gradient px-8 py-3 rounded-2xl text-white font-black text-xs uppercase tracking-widest">Send</button>
                 </form>
             </div>
         </main>
 
-        <!-- RIGHT PANEL: USERS LIST -->
-        <aside class="panel right-panel">
-            <div class="p-6 border-b border-white/5 flex justify-between items-center bg-slate-900/30 flex-shrink-0">
-                <div>
-                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">In the Room</span>
-                    <h2 id="user-count-header" class="text-sm font-black text-white">0 Active Users</h2>
-                </div>
-                <span id="user-count-badge" class="bg-purple-600 text-white text-[10px] px-2.5 py-1 rounded-lg font-black shadow-lg shadow-purple-500/20">0</span>
+        <!-- User List Area -->
+        <aside class="panel border-l border-white/5 w-[300px]">
+            <div class="p-6 border-b border-white/5">
+                <h2 id="user-count-header" class="text-xs font-black text-slate-500 uppercase tracking-[0.2em]">0 Active Users</h2>
             </div>
-            
-            <div class="flex-1 overflow-y-auto" id="player-list">
-                <!-- User list injected -->
-            </div>
-
-            <div class="p-6 border-t border-white/5 bg-slate-900/20 flex-shrink-0">
-                <div class="flex items-center gap-2 mb-3">
-                    <div class="w-2 h-2 bg-slate-600 rounded-full"></div>
-                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Offline Users</span>
-                </div>
-                <div id="offline-list" class="opacity-40 grayscale pointer-events-none">
-                    <!-- Static placeholders -->
-                </div>
-            </div>
+            <div class="scroll-area" id="player-list"></div>
         </aside>
-    </div>
-
-    <!-- MODAL SYSTEM -->
-    <div id="modal-overlay" class="fixed inset-0 modal-overlay hidden flex items-center justify-center p-6">
-        <div class="bg-slate-800 w-full max-w-lg rounded-3xl border border-white/10 shadow-2xl overflow-hidden animate-slideUp">
-            <div class="p-8">
-                <!-- Rules Content -->
-                <div id="modal-rules" class="hidden">
-                    <div class="flex items-center gap-4 mb-6">
-                        <div class="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center text-blue-400">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A10.003 10.003 0 0012 20a10.003 10.003 0 006.239-2.139l.053.09m-3.44 2.041A10.003 10.003 0 0112 20c-4.083 0-7.534-2.433-8.988-5.922m1.091-9.492L4 3m18.741 9.823a10.004 10.004 0 00-3.128-8.962m0 0l.822-.822m-8.122 7.336l.162.162m.162.162l.162.162m-.162-.162l.162.162"></path></svg>
-                        </div>
-                        <h2 class="text-2xl font-black text-white uppercase tracking-tight">The Foundation Rules</h2>
-                    </div>
-                    <ul class="space-y-4">
-                        <li class="flex gap-4 p-4 bg-slate-900/50 rounded-2xl border border-white/5">
-                            <span class="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-[10px] font-black shrink-0">1</span>
-                            <div>
-                                <p class="text-white font-bold text-sm">Mutual Respect</p>
-                                <p class="text-slate-400 text-xs">Treat every identity with dignity. Toxic behavior is not tolerated.</p>
-                            </div>
-                        </li>
-                        <li class="flex gap-4 p-4 bg-slate-900/50 rounded-2xl border border-white/5">
-                            <span class="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-[10px] font-black shrink-0">2</span>
-                            <div>
-                                <p class="text-white font-bold text-sm">Security First</p>
-                                <p class="text-slate-400 text-xs">Do not share sensitive links or files. Keep the lounge safe for all.</p>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Staff Content -->
-                <div id="modal-staff" class="hidden">
-                    <div class="flex items-center gap-4 mb-6">
-                        <div class="w-12 h-12 bg-purple-500/20 rounded-2xl flex items-center justify-center text-purple-400">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                        </div>
-                        <h2 class="text-2xl font-black text-white uppercase tracking-tight">Staff Hierarchy</h2>
-                    </div>
-                    <div class="space-y-3">
-                        <div class="flex items-center gap-4 p-4 bg-purple-500/10 rounded-2xl border border-purple-500/20">
-                            <div class="avatar"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=admin" alt="Admin"></div>
-                            <div>
-                                <div class="text-sm font-black text-white">System_Zen</div>
-                                <div class="text-[10px] text-purple-400 font-black uppercase tracking-widest">Owner / Lead Architect</div>
-                            </div>
-                            <div class="ml-auto px-3 py-1 bg-purple-600 text-white text-[8px] font-black rounded-full uppercase">Lead</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <button onclick="closeModal()" class="w-full bg-slate-700 py-5 font-black uppercase text-xs tracking-[0.2em] hover:bg-slate-600 transition-colors text-slate-300">Close Terminal</button>
-        </div>
     </div>
 
     <script type="module">
@@ -514,240 +320,16 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global State & Firebase Config
         const firebaseConfig = JSON.parse(__firebase_config);
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        let socket = null;
+
         let currentUser = null;
-        let isOnline = true;
+        let socket = null;
 
-        // UI References
-        const chatMessages = document.getElementById('chat-messages');
-        const chatForm = document.getElementById('chat-form');
-        const messageInput = document.getElementById('message-input');
-        const playerList = document.getElementById('player-list');
-        const authSection = document.getElementById('auth-section');
-        const appSection = document.getElementById('app-section');
-
-        // --- AUTH LOGIC ---
-
-        const initAuth = async () => {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                await signInAnonymously(auth);
-            }
-        };
-        initAuth();
-
-        window.toggleAuth = () => {
-            const isLogin = document.getElementById('auth-title').innerText === 'SIGN UP';
-            document.getElementById('auth-title').innerText = isLogin ? 'LOG IN' : 'SIGN UP';
-            document.getElementById('auth-desc').innerText = isLogin ? 'Authenticate with your secret key' : 'Join the most exclusive digital lounge';
-            document.getElementById('submit-btn').innerText = isLogin ? 'Open Terminal' : 'Initialize Profile';
-            document.getElementById('toggle-link').innerText = isLogin ? "New here? Initialize Signup" : "Already a member? Secure Log In";
-            
-            document.getElementById('signup-only-email').classList.toggle('hidden', isLogin);
-            document.getElementById('signup-only-details').classList.toggle('hidden', isLogin);
-        };
-
-        const showAuthMessage = (text, isError = true) => {
-            const msgBox = document.getElementById('message-box');
-            msgBox.innerText = text;
-            msgBox.className = `p-4 rounded-xl text-xs font-black mb-6 ${isError ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'bg-green-500/10 text-green-400 border border-green-500/30'}`;
-            msgBox.classList.remove('hidden');
-        };
-
-        document.getElementById('auth-form').onsubmit = async (e) => {
-            e.preventDefault();
-            if (!auth.currentUser) return showAuthMessage("Establishing connection...");
-
-            const isSignUp = document.getElementById('auth-title').innerText === 'SIGN UP';
-            const usernameInput = document.getElementById('auth-username').value.trim().toLowerCase();
-            const password = document.getElementById('auth-password').value;
-            const email = document.getElementById('auth-email').value.trim().toLowerCase();
-            const age = document.getElementById('auth-age').value;
-            const gender = document.getElementById('auth-gender').value;
-
-            try {
-                if (isSignUp) {
-                    const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', usernameInput);
-                    const userDoc = await getDoc(userDocRef);
-                    if (userDoc.exists()) return showAuthMessage("This identity is already claimed!");
-
-                    const emailQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'users'), where("email", "==", email));
-                    const emailSnap = await getDocs(emailQuery);
-                    if (!emailSnap.empty) return showAuthMessage("This email is already registered!");
-                    
-                    const profile = { 
-                        username: usernameInput, 
-                        email, 
-                        password, 
-                        age, 
-                        gender, 
-                        uid: auth.currentUser.uid,
-                        joinedAt: Date.now()
-                    };
-                    await setDoc(userDocRef, profile);
-                    loginSuccess(profile);
-                } else {
-                    let profile = null;
-                    const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', usernameInput);
-                    const userDoc = await getDoc(userDocRef);
-                    
-                    if (userDoc.exists()) {
-                        profile = userDoc.data();
-                    } else {
-                        const emailQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'users'), where("email", "==", usernameInput));
-                        const emailSnap = await getDocs(emailQuery);
-                        if (!emailSnap.empty) profile = emailSnap.docs[0].data();
-                    }
-
-                    if (!profile) return showAuthMessage("Access denied: Identity not found.");
-                    if (profile.password !== password) return showAuthMessage("Access denied: Invalid secret key.");
-                    
-                    loginSuccess(profile);
-                }
-            } catch (err) {
-                console.error(err);
-                showAuthMessage("Core error. Terminal restart required.");
-            }
-        };
-
-        function loginSuccess(profile) {
-            currentUser = profile;
-            localStorage.setItem('chat_profile', JSON.stringify(profile));
-            authSection.classList.add('opacity-0');
-            setTimeout(() => {
-                authSection.classList.add('hidden');
-                appSection.classList.remove('hidden');
-                initChat();
-            }, 500);
-        }
-
-        // --- CHAT LOGIC ---
-
-        function initChat() {
-            document.getElementById('me-name').innerText = currentUser.username;
-            document.getElementById('me-avatar').src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.username}`;
-            
-            try {
-                socket = io();
-                socket.emit('join', currentUser);
-
-                socket.on('message', (data) => {
-                    const div = document.createElement('div');
-                    if (data.system) {
-                        div.className = "flex justify-center";
-                        div.innerHTML = `<div class="system-msg">${data.text}</div>`;
-                    } else {
-                        const isMe = data.username === currentUser.username;
-                        div.className = `flex ${isMe ? 'flex-row-reverse' : 'flex-row'} items-end gap-3`;
-                        div.innerHTML = `
-                            <div class="avatar w-9 h-9 border border-white/5 flex-shrink-0">
-                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${data.username}">
-                            </div>
-                            <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[75%]">
-                                <span class="text-[9px] font-black text-slate-500 mb-1.5 uppercase px-1 tracking-tighter">${data.username} • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                                <div class="msg-bubble ${isMe ? 'msg-own' : 'msg-other'}">
-                                    ${data.text}
-                                </div>
-                            </div>
-                        `;
-                    }
-                    chatMessages.appendChild(div);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                });
-
-                socket.on('userListUpdate', (users) => {
-                    if (!isOnline) return;
-                    playerList.innerHTML = '';
-                    const count = users.length;
-                    document.getElementById('user-count-badge').innerText = count;
-                    document.getElementById('user-count-header').innerText = `${count} Active User${count !== 1 ? 's' : ''}`;
-                    
-                    users.forEach(user => {
-                        const isMe = user.username === currentUser.username;
-                        const div = document.createElement('div');
-                        div.className = 'flex items-center gap-4 p-4 border-b border-white/5 hover:bg-white/5 transition-all cursor-pointer group';
-                        div.innerHTML = `
-                            <div class="avatar">
-                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}">
-                                <div class="status-dot dot-online"></div>
-                            </div>
-                            <div class="flex-1 overflow-hidden">
-                                <div class="text-sm font-black ${isMe ? 'text-purple-400' : 'text-slate-200'} truncate group-hover:text-white transition-colors">
-                                    ${user.username} ${isMe ? '(You)' : ''}
-                                </div>
-                                <div class="text-[9px] text-slate-500 font-black uppercase tracking-widest">
-                                    ${user.age || '??'}Y/O • ${user.gender || 'Entity'}
-                                </div>
-                            </div>
-                            <div class="opacity-0 group-hover:opacity-100 transition-opacity">
-                                <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
-                            </div>
-                        `;
-                        playerList.appendChild(div);
-                    });
-                });
-
-            } catch(e) {
-                console.warn("Socket.io missing. Local simulation only.");
-            }
-        }
-
-        // --- GLOBAL ACTIONS ---
-
-        window.toggleStatus = () => {
-            isOnline = !isOnline;
-            const btn = document.getElementById('status-btn');
-            
-            if (isOnline) {
-                btn.innerHTML = `<span id="status-dot-indicator" class="w-2.5 h-2.5 bg-green-500 rounded-full shadow-[0_0_8px_#10b981]"></span> Status: Online`;
-                if(socket) socket.connect();
-            } else {
-                btn.innerHTML = `<span id="status-dot-indicator" class="w-2.5 h-2.5 bg-slate-500 rounded-full"></span> Status: Offline`;
-                if(socket) socket.disconnect();
-                playerList.innerHTML = `
-                    <div class="p-10 text-center">
-                        <div class="w-16 h-16 bg-slate-800 rounded-full mx-auto mb-4 flex items-center justify-center text-slate-600">
-                             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
-                        </div>
-                        <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Terminal Offline</p>
-                    </div>
-                `;
-            }
-        };
-
-        window.logout = () => {
-            localStorage.removeItem('chat_profile');
-            location.reload();
-        };
-
-        window.openModal = (type) => {
-            document.getElementById('modal-overlay').classList.remove('hidden');
-            document.getElementById('modal-rules').classList.add('hidden');
-            document.getElementById('modal-staff').classList.add('hidden');
-            document.getElementById(`modal-${type}`).classList.remove('hidden');
-        };
-
-        window.closeModal = () => {
-            document.getElementById('modal-overlay').classList.add('hidden');
-        };
-
-        chatForm.onsubmit = (e) => {
-            e.preventDefault();
-            const text = messageInput.value.trim();
-            if (text && socket && isOnline) {
-                socket.emit('sendMessage', { text });
-                messageInput.value = '';
-            }
-        };
-
-        // Populate Age Helper
+        // Populate Ages 1-100
         const ageSelect = document.getElementById('auth-age');
         for(let i = 1; i <= 100; i++) {
             const opt = document.createElement('option');
@@ -756,17 +338,108 @@
             ageSelect.appendChild(opt);
         }
 
-        // Auto-login if session exists
+        window.toggleAuthMode = () => {
+            const isSignUp = document.getElementById('auth-title').innerText === 'SIGN UP';
+            document.getElementById('auth-title').innerText = isSignUp ? 'LOG IN' : 'SIGN UP';
+            document.getElementById('submit-btn').innerText = isSignUp ? 'Access Terminal' : 'Initialize Profile';
+            document.getElementById('signup-fields').classList.toggle('hidden', isSignUp);
+            document.getElementById('toggle-link').innerText = isSignUp ? "New? Create Account" : "Member? Secure Log In";
+        };
+
+        const showError = (msg) => {
+            const err = document.getElementById('auth-error');
+            err.innerText = msg;
+            err.classList.remove('hidden');
+        };
+
+        document.getElementById('auth-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const isSignUp = document.getElementById('auth-title').innerText === 'SIGN UP';
+            const username = document.getElementById('auth-username').value.trim().toLowerCase();
+            const password = document.getElementById('auth-password').value;
+            
+            if (!auth.currentUser) await signInAnonymously(auth);
+
+            try {
+                const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', username);
+                const userSnap = await getDoc(userDocRef);
+
+                if (isSignUp) {
+                    if (userSnap.exists()) return showError("Username already claimed.");
+                    const profile = {
+                        username, password,
+                        email: document.getElementById('auth-email').value || '',
+                        age: document.getElementById('auth-age').value,
+                        gender: document.getElementById('auth-gender').value,
+                        uid: auth.currentUser.uid,
+                        joinedAt: Date.now()
+                    };
+                    await setDoc(userDocRef, profile);
+                    loginSuccess(profile);
+                } else {
+                    if (!userSnap.exists() || userSnap.data().password !== password) {
+                        return showError("Invalid credentials.");
+                    }
+                    loginSuccess(userSnap.data());
+                }
+            } catch (err) {
+                showError("System error. Try again.");
+            }
+        };
+
+        function loginSuccess(profile) {
+            currentUser = profile;
+            localStorage.setItem('chat_profile', JSON.stringify(profile));
+            document.getElementById('auth-section').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('app-section').classList.remove('hidden');
+                startApp();
+            }, 400);
+        }
+
+        function startApp() {
+            document.getElementById('me-name').innerText = currentUser.username;
+            document.getElementById('me-avatar').src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.username}`;
+            
+            // Player list update logic
+            const updateUI = () => {
+                const playerList = document.getElementById('player-list');
+                playerList.innerHTML = `
+                    <div class="flex items-center gap-4 p-4 border-b border-white/5 bg-purple-500/5">
+                        <div class="avatar"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.username}"><div class="status-dot dot-online"></div></div>
+                        <div class="flex-1 overflow-hidden">
+                            <div class="text-sm font-black text-white truncate">${currentUser.username} (You)</div>
+                            <div class="text-[9px] text-slate-500 font-black uppercase tracking-widest">${currentUser.age}Y/O • ${currentUser.gender}</div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('user-count-header').innerText = `1 Active User`;
+            };
+            updateUI();
+        }
+
+        window.logout = () => { localStorage.removeItem('chat_profile'); location.reload(); };
+
+        document.getElementById('chat-form').onsubmit = (e) => {
+            e.preventDefault();
+            const input = document.getElementById('message-input');
+            const val = input.value.trim();
+            if(!val) return;
+            
+            const msg = document.createElement('div');
+            msg.className = 'msg-bubble msg-own';
+            msg.innerText = val;
+            document.getElementById('chat-messages').appendChild(msg);
+            input.value = '';
+            const container = document.getElementById('chat-messages');
+            container.scrollTop = container.scrollHeight;
+        };
+
+        // Auto-login logic
         window.addEventListener('load', () => {
             const saved = localStorage.getItem('chat_profile');
-            if (saved) {
-                try {
-                    currentUser = JSON.parse(saved);
-                    authSection.classList.add('hidden');
-                    appSection.classList.remove('hidden');
-                    initChat();
-                } catch(e) { localStorage.removeItem('chat_profile'); }
-            }
+            if(saved) loginSuccess(JSON.parse(saved));
         });
     </script>
 </body>
