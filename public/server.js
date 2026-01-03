@@ -14,12 +14,17 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// 1. Serve static files from the root directory (where index.html is located)
+// 1. Serve static files from the root directory
 app.use(express.static(__dirname));
 
-// 2. Explicitly handle the root route to prevent "Cannot GET /"
+// 2. Explicitly handle the root route
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// 3. Add a specific route for the chat page to ensure it doesn't loop back
+app.get('/chat', (req, res) => {
+    res.sendFile(path.join(__dirname, 'chat_app.html'));
 });
 
 // In-memory state for basic real-time functionality
@@ -31,6 +36,8 @@ io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
     socket.on('join', (userProfile) => {
+        if (!userProfile || !userProfile.username) return;
+
         const userData = {
             ...userProfile,
             socketId: socket.id,
@@ -44,14 +51,14 @@ io.on('connection', (socket) => {
         const systemMsg = {
             id: `sys-${Date.now()}`,
             username: 'System',
-            text: `${userData.username || 'Someone'} has joined the lounge.`,
+            text: `${userData.username} has joined the lounge.`,
             timestamp: new Date(),
-            type: 'system'
+            system: true // Ensure frontend recognizes this as a system message
         };
         io.emit('message', systemMsg);
     });
 
-    socket.on('sendMessage', (messageText) => {
+    socket.on('sendMessage', (data) => {
         const user = activeUsers.get(socket.id);
         if (!user) return;
 
@@ -59,9 +66,10 @@ io.on('connection', (socket) => {
             id: `msg-${Date.now()}-${socket.id}`,
             userId: user.uid,
             username: user.username,
-            text: messageText,
+            text: data.text || data, // Handle both object and string inputs
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             timestamp: new Date(),
-            type: 'user'
+            system: false
         };
 
         messageHistory.push(newMessage);
@@ -78,7 +86,7 @@ io.on('connection', (socket) => {
             io.emit('message', {
                 username: 'System',
                 text: `${user.username} has left.`,
-                type: 'system'
+                system: true
             });
         }
     });
