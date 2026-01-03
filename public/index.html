@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lounge | Join</title>
+    <title>Lounge | Authentication</title>
     <!-- Corrected Tailwind and Font imports -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #09090b;
             color: #fafafa;
-            overflow: hidden;
+            overflow-x: hidden;
         }
 
         .glass {
@@ -30,6 +30,10 @@
             animation: fadeIn 0.4s ease-out forwards; 
         }
 
+        select, input {
+            transition: all 0.2s ease;
+        }
+
         select {
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
             background-position: right 1rem center;
@@ -39,35 +43,63 @@
         
         input:focus, select:focus {
             box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+            border-color: #6366f1 !important;
+        }
+
+        .error-shake {
+            animation: shake 0.4s ease-in-out;
+            border-color: #ef4444 !important;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
         }
     </style>
 </head>
-<body class="h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-[#09090b] to-[#09090b]">
+<body class="min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-[#09090b] to-[#09090b]">
 
     <div class="glass w-full max-w-md p-10 rounded-[2.5rem] shadow-2xl text-center animate-in border border-white/10">
         <div class="mb-8">
             <div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl mx-auto flex items-center justify-center text-3xl mb-4 shadow-2xl shadow-indigo-500/20">
                 👋
             </div>
-            <h1 class="text-3xl font-800 tracking-tight text-white">Welcome to Lounge</h1>
-            <p class="text-zinc-500 mt-2 font-medium">Create your profile to start chatting</p>
+            <h1 id="auth-title" class="text-3xl font-800 tracking-tight text-white">Welcome Back</h1>
+            <p id="auth-subtitle" class="text-zinc-500 mt-2 font-medium">Please sign in to your account</p>
         </div>
 
-        <form id="join-form" class="space-y-5">
+        <form id="auth-form" class="space-y-4">
             <div class="space-y-4 text-left">
-                <!-- Username Input -->
+                <!-- Email Input (Common) -->
                 <div>
-                    <label class="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest ml-2">Display Name</label>
-                    <input type="text" id="username" required maxlength="15" 
-                        class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-6 py-4 outline-none focus:border-indigo-500 transition-all text-lg text-white placeholder:text-zinc-700"
-                        placeholder="e.g. ShadowWalker">
+                    <label class="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest ml-2">Email Address</label>
+                    <input type="email" id="email" required 
+                        class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-6 py-4 outline-none transition-all text-white placeholder:text-zinc-700"
+                        placeholder="name@example.com">
+                </div>
+
+                <!-- Username Input (Signup Only) -->
+                <div id="username-container" class="hidden">
+                    <label class="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest ml-2">Username</label>
+                    <input type="text" id="username" maxlength="15" 
+                        class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-6 py-4 outline-none transition-all text-white placeholder:text-zinc-700"
+                        placeholder="Choose a display name">
+                </div>
+
+                <!-- Password Input (Common) -->
+                <div>
+                    <label class="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest ml-2">Password</label>
+                    <input type="password" id="password" required 
+                        class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-6 py-4 outline-none transition-all text-white placeholder:text-zinc-700"
+                        placeholder="••••••••">
                 </div>
                 
-                <div class="grid grid-cols-2 gap-4">
+                <div id="profile-container" class="grid grid-cols-2 gap-4 hidden">
                     <!-- Age Selection -->
                     <div>
                         <label class="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest ml-2">Age</label>
-                        <select id="age" required class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-4 py-4 outline-none focus:border-indigo-500 transition-all text-white appearance-none cursor-pointer">
+                        <select id="age" class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-4 py-4 outline-none transition-all text-white appearance-none cursor-pointer">
                             <option value="">Select</option>
                             <script>
                                 for(let i=13; i<=99; i++) {
@@ -79,7 +111,7 @@
                     <!-- Gender Selection -->
                     <div>
                         <label class="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest ml-2">Gender</label>
-                        <select id="gender" required class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-4 py-4 outline-none focus:border-indigo-500 transition-all text-white appearance-none cursor-pointer">
+                        <select id="gender" class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-4 py-4 outline-none transition-all text-white appearance-none cursor-pointer">
                             <option value="">Select</option>
                             <option value="Male">Male</option>
                             <option value="Female">Female</option>
@@ -88,59 +120,138 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Error Message Box -->
+            <div id="error-message" class="text-red-400 text-xs font-bold hidden py-2 bg-red-400/10 rounded-xl border border-red-400/20">
+                Invalid credentials.
+            </div>
             
-            <button type="submit" 
+            <button type="submit" id="submit-btn" 
                 class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-indigo-600/20 active:scale-[0.98] mt-4 flex items-center justify-center gap-2">
-                <span>Enter Lounge</span>
+                <span>Sign In</span>
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
             </button>
         </form>
         
         <div class="mt-8 pt-6 border-t border-white/5">
-            <p class="text-zinc-600 text-[10px] uppercase tracking-[0.2em] font-bold">Real-time Connection • Instant Join</p>
+            <button id="toggle-mode" class="text-zinc-400 hover:text-indigo-400 text-xs font-bold transition-colors">
+                Don't have an account? <span class="text-indigo-500 underline">Sign Up</span>
+            </button>
         </div>
     </div>
 
     <script>
-        // Check for existing session
-        window.onload = () => {
-            try {
-                const saved = localStorage.getItem('chat_profile');
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    if (parsed && parsed.username) {
-                        window.location.href = '/chat';
-                    }
+        let isLogin = true;
+
+        const authForm = document.getElementById('auth-form');
+        const toggleBtn = document.getElementById('toggle-mode');
+        const title = document.getElementById('auth-title');
+        const subtitle = document.getElementById('auth-subtitle');
+        const submitBtn = document.getElementById('submit-btn');
+        const usernameContainer = document.getElementById('username-container');
+        const profileContainer = document.getElementById('profile-container');
+        const errorMessage = document.getElementById('error-message');
+
+        // Toggle between Login and Signup
+        toggleBtn.onclick = () => {
+            isLogin = !isLogin;
+            title.innerText = isLogin ? "Welcome Back" : "Create Account";
+            subtitle.innerText = isLogin ? "Please sign in to your account" : "Join the lounge community today";
+            submitBtn.querySelector('span').innerText = isLogin ? "Sign In" : "Create Account";
+            toggleBtn.innerHTML = isLogin ? 
+                "Don't have an account? <span class='text-indigo-500 underline'>Sign Up</span>" : 
+                "Already have an account? <span class='text-indigo-500 underline'>Log In</span>";
+            
+            usernameContainer.classList.toggle('hidden', isLogin);
+            profileContainer.classList.toggle('hidden', isLogin);
+            errorMessage.classList.add('hidden');
+            
+            // Toggle required attributes
+            document.getElementById('username').required = !isLogin;
+            document.getElementById('age').required = !isLogin;
+            document.getElementById('gender').required = !isLogin;
+        };
+
+        // Simulated Database logic using LocalStorage
+        const getUsers = () => JSON.parse(localStorage.getItem('registered_users') || '[]');
+        const saveUser = (user) => {
+            const users = getUsers();
+            users.push(user);
+            localStorage.setItem('registered_users', JSON.stringify(users));
+        };
+
+        authForm.onsubmit = (e) => {
+            e.preventDefault();
+            errorMessage.classList.add('hidden');
+
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const users = getUsers();
+
+            if (isLogin) {
+                // LOGIN LOGIC
+                const user = users.find(u => u.email === email && u.password === password);
+                
+                if (user) {
+                    localStorage.setItem('chat_profile', JSON.stringify({
+                        username: user.username,
+                        email: user.email,
+                        age: user.age,
+                        gender: user.gender,
+                        uid: user.uid,
+                        joinedAt: Date.now()
+                    }));
+                    window.location.href = '/chat';
+                } else {
+                    showError("Invalid email or password.");
                 }
-            } catch (e) {
-                console.error("Storage error:", e);
+            } else {
+                // SIGNUP LOGIC
+                const username = document.getElementById('username').value.trim();
+                const age = document.getElementById('age').value;
+                const gender = document.getElementById('gender').value;
+
+                // Check if email or username is taken
+                if (users.some(u => u.email === email)) {
+                    return showError("This email is already registered.");
+                }
+                if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+                    return showError("Username is already taken.");
+                }
+
+                const newUser = {
+                    email,
+                    password,
+                    username,
+                    age,
+                    gender,
+                    uid: 'u_' + Math.random().toString(36).substr(2, 9)
+                };
+
+                saveUser(newUser);
+                
+                // Log them in immediately
+                localStorage.setItem('chat_profile', JSON.stringify({
+                    ...newUser,
+                    joinedAt: Date.now()
+                }));
+                window.location.href = '/chat';
             }
         };
 
-        // Form submission logic
-        document.getElementById('join-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            const username = document.getElementById('username').value.trim();
-            const age = document.getElementById('age').value;
-            const gender = document.getElementById('gender').value;
+        function showError(msg) {
+            errorMessage.innerText = msg;
+            errorMessage.classList.remove('hidden');
+            authForm.classList.add('error-shake');
+            setTimeout(() => authForm.classList.remove('error-shake'), 400);
+        }
 
-            if (username && age && gender) {
-                const profileData = {
-                    username: username,
-                    age: age,
-                    gender: gender,
-                    uid: 'u_' + Math.random().toString(36).substr(2, 9),
-                    joinedAt: Date.now()
-                };
-
-                // Store in local storage for persistence across pages
-                localStorage.setItem('chat_profile', JSON.stringify(profileData));
-                
-                // Redirect to the chat interface
+        // Auto-redirect if session exists
+        window.onload = () => {
+            if (localStorage.getItem('chat_profile')) {
                 window.location.href = '/chat';
             }
-        });
+        };
     </script>
 </body>
 </html>
