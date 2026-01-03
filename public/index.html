@@ -15,7 +15,6 @@
             min-height: 100vh;
             margin: 0;
             overflow-x: hidden;
-            /* Dark slate background to reduce eye strain */
             background-color: #0f172a;
         }
 
@@ -25,7 +24,7 @@
             border-radius: 2rem;
             padding: 2.5rem;
             width: 100%;
-            max-width: 420px;
+            max-width: 480px; /* Slightly wider to accommodate new fields */
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             position: relative;
         }
@@ -34,7 +33,6 @@
             display: none;
         }
 
-        /* Dark mode input styling */
         .input-field {
             width: 100%;
             padding: 1rem 1.25rem;
@@ -45,6 +43,7 @@
             outline: none;
             transition: all 0.2s ease;
             font-size: 0.95rem;
+            appearance: none; /* For select arrows */
         }
 
         .input-field::placeholder {
@@ -57,7 +56,6 @@
             box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
         }
 
-        /* Cartoonish Realistic Button Gradient */
         .btn-gradient {
             background: linear-gradient(180deg, #9061f9 0%, #6d28d9 100%);
             border-bottom: 4px solid #4c1d95;
@@ -82,7 +80,6 @@
             filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.3));
         }
 
-        /* Adjust labels and text for dark mode */
         label {
             color: #cbd5e1 !important;
         }
@@ -93,6 +90,15 @@
         
         p {
             color: #94a3b8 !important;
+        }
+
+        /* Custom scrollbar for long select lists */
+        select.input-field {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.5em;
+            padding-right: 2.5rem;
         }
     </style>
 </head>
@@ -140,19 +146,55 @@
         <!-- Signup Container -->
         <div id="signup-container" class="auth-card hidden">
             <h2 class="text-2xl font-bold mb-2">Create Account</h2>
-            <p class="text-sm mb-8">Start your journey with ChatApp today.</p>
+            <p class="text-sm mb-6">Start your journey with ChatApp today.</p>
 
             <form onsubmit="handleSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold mb-1.5 ml-1">Username</label>
+                    <input type="text" placeholder="Choose a username" required class="input-field">
+                </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-bold mb-1.5 ml-1">First Name</label>
-                        <input type="text" placeholder="John" required class="input-field">
+                        <label class="block text-sm font-bold mb-1.5 ml-1">Age</label>
+                        <select id="age-select" required class="input-field">
+                            <option value="" disabled selected>Select age</option>
+                            <!-- Script below will fill 7-1000 -->
+                        </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-bold mb-1.5 ml-1">Last Name</label>
-                        <input type="text" placeholder="Doe" required class="input-field">
+                        <label class="block text-sm font-bold mb-1.5 ml-1">Gender</label>
+                        <select required class="input-field">
+                            <option value="" disabled selected>Select gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="trans">Trans</option>
+                            <option value="furry">Furry</option>
+                            <option value="other">Other</option>
+                            <option value="nonbinary">Non-binary</option>
+                            <option value="genderfluid">Genderfluid</option>
+                            <option value="agender">Agender</option>
+                            <option value="bigender">Bigender</option>
+                            <option value="demiboy">Demiboy</option>
+                            <option value="demigirl">Demigirl</option>
+                            <option value="pangender">Pangender</option>
+                            <option value="queer">Genderqueer</option>
+                            <option value="two-spirit">Two-Spirit</option>
+                            <option value="intersex">Intersex</option>
+                            <option value="androgynous">Androgynous</option>
+                            <option value="neutrois">Neutrois</option>
+                            <option value="aliagender">Aliagender</option>
+                            <option value="aprogender">Aprogender</option>
+                            <option value="maverique">Maverique</option>
+                            <option value="polygender">Polygender</option>
+                            <option value="voxgender">Voxgender</option>
+                            <option value="astral">Astral</option>
+                            <option value="xenogender">Xenogender</option>
+                            <option value="prefer-not-to-say">Prefer not to say</option>
+                        </select>
                     </div>
                 </div>
+
                 <div>
                     <label class="block text-sm font-bold mb-1.5 ml-1">Email</label>
                     <input type="email" placeholder="name@example.com" required class="input-field">
@@ -182,6 +224,15 @@
     </div>
 
     <script>
+        // Populate Age Dropdown
+        const ageSelect = document.getElementById('age-select');
+        for (let i = 7; i <= 1000; i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.innerHTML = i;
+            ageSelect.appendChild(opt);
+        }
+
         function toggleAuth() {
             const login = document.getElementById('login-container');
             const signup = document.getElementById('signup-container');
