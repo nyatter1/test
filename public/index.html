@@ -168,23 +168,30 @@
             document.getElementById('signup-container').classList.toggle('hidden');
         }
 
-        function handleAuth(e, type) {
+        async function handleAuth(e, type) {
             e.preventDefault();
             
             let username;
             if (type === 'signup') {
-                username = document.getElementById('reg-username').value;
+                username = document.getElementById('reg-username').value.trim();
             } else {
-                username = document.getElementById('login-email').value.split('@')[0];
+                // For login, we take the part before @ as a temporary username
+                const email = document.getElementById('login-email').value;
+                username = email.split('@')[0];
             }
 
-            // Critical: Save for chat.html
+            if (!username) return;
+
+            // Save the username explicitly
             localStorage.setItem('chat_username', username);
             
+            // Show feedback
             showToast(type === 'signup' ? "ACCOUNT CREATED!" : "WELCOME BACK!");
 
+            // Brief delay ensures localStorage is set and toast is visible
             setTimeout(() => {
-                window.location.href = '/chat.html';
+                // Navigate to the chat page relative to the current site root
+                window.location.assign('/chat.html');
             }, 1000);
         }
 
