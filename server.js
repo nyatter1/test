@@ -7,16 +7,25 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Serve static files from the public directory
+// Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Explicit route for the root to serve index.html
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Explicit route for chat to ensure it loads correctly
+app.get('/chat.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'chat.html'));
+});
 
 // Store online users
 const onlineUsers = new Map();
 
 io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
+    console.log('User connected:', socket.id);
 
-    // When a user joins the chat
     socket.on('join', (username) => {
         onlineUsers.set(socket.id, {
             username: username,
@@ -24,10 +33,8 @@ io.on('connection', (socket) => {
             status: 'online'
         });
         
-        // Broadcast updated user list to everyone
         io.emit('userListUpdate', Array.from(onlineUsers.values()));
         
-        // System message
         io.emit('message', {
             username: 'System',
             text: `${username} has joined the lounge!`,
@@ -36,7 +43,6 @@ io.on('connection', (socket) => {
         });
     });
 
-    // Handle chat messages
     socket.on('sendMessage', (messageData) => {
         const user = onlineUsers.get(socket.id);
         if (user) {
@@ -44,24 +50,21 @@ io.on('connection', (socket) => {
                 username: user.username,
                 text: messageData.text,
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                socketId: socket.id // Used to identify 'self' on client side
+                socketId: socket.id
             });
         }
     });
 
-    // Handle disconnection
     socket.on('disconnect', () => {
         const user = onlineUsers.get(socket.id);
         if (user) {
-            const username = user.username;
             onlineUsers.delete(socket.id);
             io.emit('userListUpdate', Array.from(onlineUsers.values()));
-            console.log(`${username} disconnected`);
         }
     });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on http://localhost:${PORT}`);
 });
