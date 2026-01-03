@@ -7,87 +7,75 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Middleware to serve static files
+// Middleware to serve static files from the root or a 'public' folder
+// Adjust this if your HTML files are inside a specific subdirectory
+app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Explicit route to serve the login/signup page (index.html)
+// Explicit routes for your documents
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Explicit route to serve the chat dashboard (public/chat.html)
 app.get('/chat.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'chat.html'));
+    // If chat.html is in a public folder, use path.join(__dirname, 'public', 'chat.html')
+    res.sendFile(path.join(__dirname, 'chat.html'));
 });
 
-// In-memory store for active users
-// Key: socket.id, Value: { username: string, id: string, joinedAt: Date }
-const activeUsers = new Map();
+// In-memory state (Note: resets when server restarts)
+const users = new Map(); // socket.id -> { username, id }
 
 io.on('connection', (socket) => {
-    console.log(`Connection established: ${socket.id}`);
+    console.log('User connected:', socket.id);
 
-    // Triggered when chat.html initializes and sends the username from localStorage
+    // This event is triggered by chat.html after the redirect
     socket.on('join', (username) => {
-        // Sanitize username or fallback to a unique Guest name
-        const cleanName = (username && username.trim().length > 0) 
-            ? username.trim() 
-            : `Guest_${socket.id.substring(0, 5)}`;
-
-        // Store the user session
-        activeUsers.set(socket.id, {
-            username: cleanName,
+        const cleanName = username ? username.trim() : `Guest_${socket.id.substring(0, 4)}`;
+        
+        users.set(socket.id, {
             id: socket.id,
-            joinedAt: new Date()
+            username: cleanName
         });
 
-        console.log(`User registered: ${cleanName} (${socket.id})`);
+        console.log(`${cleanName} joined the chat`);
 
-        // 1. Update the 'Online Players' list for everyone
-        io.emit('userListUpdate', Array.from(activeUsers.values()));
+        // Update the online list for everyone
+        io.emit('userListUpdate', Array.from(users.values()));
 
-        // 2. Broadcast a system message to the lounge
+        // Send a welcome message
         io.emit('message', {
             username: 'System',
-            text: `${cleanName} has entered the lounge!`,
+            text: `${cleanName} has joined the lounge!`,
             system: true,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
     });
 
-    // Handle incoming chat messages
-    socket.on('sendMessage', (messageData) => {
-        const user = activeUsers.get(socket.id);
-        
-        if (user && messageData.text) {
+    // Handle chat messages
+    socket.on('sendMessage', (data) => {
+        const user = users.get(socket.id);
+        if (user && data.text) {
             io.emit('message', {
                 username: user.username,
-                text: messageData.text,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                socketId: socket.id // Useful for client-side styling
+                text: data.text,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             });
         }
     });
 
     // Handle disconnection
     socket.on('disconnect', () => {
-        const user = activeUsers.get(socket.id);
+        const user = users.get(socket.id);
         if (user) {
-            const leavingName = user.username;
-            activeUsers.delete(socket.id);
-            
-            console.log(`User left: ${leavingName}`);
-
-            // Update the player list for remaining users
-            io.emit('userListUpdate', Array.from(activeUsers.values()));
-            
-            // Optional: Broadcast departure message
-            // io.emit('message', { username: 'System', text: `${leavingName} left the chat.`, system: true });
+            console.log(`${user.username} disconnected`);
+            users.delete(socket.id);
+            io.emit('userListUpdate', Array.from(users.values()));
         }
     });
 });
 
+// Render provides a PORT environment variable automatically
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`>>> Chat Server is live at http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
