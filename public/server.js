@@ -7,87 +7,106 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Middleware to serve static files from the root directory
-// This ensures index.html, chat_app.html, etc., are accessible
-app.use(express.static(__dirname));
+const PORT = process.env.PORT || 3000;
 
-// Route for the main landing page (Signup/Login)
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Route for the chat interface
-app.get('/chat', (req, res) => {
-    res.sendFile(path.join(__dirname, 'chat_app.html'));
-});
-
-// In-memory store for active users
-let onlineUsers = [];
+// Store active users: { socketId: { username, age, gender, ... } }
+const users = new Map();
 
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
-    // Handle user joining with their profile data
+    // When a user joins the lounge
     socket.on('join', (profile) => {
-        if (!profile || !profile.username) return;
-
-        // Store user data associated with the socket ID
-        const userData = {
-            id: socket.id,
-            username: profile.username,
-            age: profile.age,
-            gender: profile.gender,
-            uid: profile.uid
-        };
-
-        onlineUsers.push(userData);
-
-        // Notify everyone that a new user joined
-        io.emit('message', {
-            system: true,
-            text: `${profile.username} has entered the lounge`,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        // Store profile with socket ID
+        users.set(socket.id, {
+            ...profile,
+            socketId: socket.id,
+            joinedAt: new Date()
         });
 
-        // Broadcast the updated user list to all clients
-        io.emit('userListUpdate', onlineUsers);
+        // Broadcast to everyone that a user joined
+        io.emit('message', {
+            system: true,
+            text: `${profile.username} has entered the lounge.`
+        });
+
+        // Update the global user list for everyone
+        updateUserList();
     });
 
-    // Handle incoming chat messages
+    // Handle Public Messages
     socket.on('sendMessage', (data) => {
-        const user = onlineUsers.find(u => u.id === socket.id);
-        if (user && data.text) {
+        const user = users.get(socket.id);
+        if (user) {
             io.emit('message', {
                 username: user.username,
                 text: data.text,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 system: false
             });
         }
     });
 
-    // Handle disconnection
-    socket.on('disconnect', () => {
-        const userIndex = onlineUsers.findIndex(u => u.id === socket.id);
-        if (userIndex !== -1) {
-            const user = onlineUsers[userIndex];
-            onlineUsers.splice(userIndex, 1);
+    // Handle Private Messages (DMs)
+    socket.on('privateMessage', (data) => {
+        const sender = users.get(socket.id);
+        if (!sender) return;
 
-            // Notify others
+        // Find the recipient by username (case insensitive)
+        const recipientEntry = Array.from(users.entries()).find(([id, profile]) => 
+            profile.username.toLowerCase() === data.target.toLowerCase()
+        );
+
+        if (recipientEntry) {
+            const [recipientSocketId, recipientProfile] = recipientEntry;
+            
+            const dmPayload = {
+                username: sender.username,
+                text: data.text,
+                timestamp: new Date(),
+                isPrivate: true
+            };
+
+            // Send to recipient
+            io.to(recipientSocketId).emit('privateMessage', dmPayload);
+
+            // Optional: Send back to sender for their own local history/confirmation
+            // socket.emit('privateMessageSent', { ...dmPayload, target: data.target });
+        } else {
+            // Recipient not found or offline
+            socket.emit('message', {
+                system: true,
+                text: `User ${data.target} is currently offline.`
+            });
+        }
+    });
+
+    // Handle Disconnection
+    socket.on('disconnect', () => {
+        const user = users.get(socket.id);
+        if (user) {
             io.emit('message', {
                 system: true,
-                text: `${user.username} has left the lounge`,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                text: `${user.username} has left the lounge.`
             });
-
-            // Update user list for everyone
-            io.emit('userListUpdate', onlineUsers);
+            users.delete(socket.id);
+            updateUserList();
         }
         console.log('User disconnected:', socket.id);
     });
+
+    function updateUserList() {
+        const userList = Array.from(users.values()).map(u => ({
+            username: u.username,
+            age: u.age,
+            gender: u.gender
+        }));
+        io.emit('userListUpdate', userList);
+    }
 });
 
-const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`Server running on http://localhost:${PORT}`);
 });
