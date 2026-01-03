@@ -45,6 +45,8 @@
         #user-context-menu {
             transition: opacity 0.2s ease, transform 0.2s ease;
             transform-origin: left center;
+            /* High z-index to stay on top of all layers */
+            z-index: 9999;
         }
     </style>
 </head>
@@ -61,7 +63,7 @@
         </div>
 
         <!-- Mini Context Menu (Fixed Position relative to sidebar item) -->
-        <div id="user-context-menu" class="hidden absolute left-[310px] w-48 glass border border-white/10 rounded-2xl shadow-2xl z-20 overflow-hidden">
+        <div id="user-context-menu" class="hidden absolute left-[310px] w-48 glass border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
             <div class="p-2">
                 <button id="view-profile-btn" class="w-full text-left px-4 py-3 text-xs font-bold text-zinc-300 hover:bg-indigo-600 hover:text-white rounded-xl transition-all flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
@@ -197,8 +199,7 @@
             const menu = document.getElementById('user-context-menu');
             const rect = event.currentTarget.getBoundingClientRect();
             
-            // Fixed positioning: Align vertically with the item, and always at the right edge of the sidebar
-            // The sidebar is relative, so we use offsetTop to get the distance from the top of the list
+            // Fixed positioning: Align vertically with the item
             menu.style.top = `${event.currentTarget.offsetTop}px`;
             
             // Reset transforms for animation
