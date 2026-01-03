@@ -10,11 +10,18 @@ const io = new Server(server);
 const PORT = process.env.PORT || 3000;
 
 // Serve static files from the public directory
+// This handles chat_app.html, CSS, and JS files automatically
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Root route to serve the main HTML file
+// Fixed the double 'public' path issue for Render/Linux environments
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Explicit route for chat_app.html just in case
+app.get('/chat', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'chat_app.html'));
 });
 
 // Store active users: { socketId: { username, age, gender, ... } }
