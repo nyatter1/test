@@ -197,7 +197,7 @@
             <header class="h-16 flex items-center px-6 bg-[#1e293b] border-b border-white/5">
                 <h1 class="font-extrabold text-lg">Public Lounge</h1>
                 <div id="self-display" class="ml-auto flex items-center gap-3">
-                    <span id="current-username-display" class="text-sm font-bold text-purple-400"></span>
+                    <span id="current-username-display" class="text-sm font-bold text-purple-400">Connecting...</span>
                     <div class="avatar w-9 h-9 border-2 border-purple-500/30">
                         <img src="default.png" alt="me">
                     </div>
@@ -230,21 +230,27 @@
         const playerList = document.getElementById('player-list');
         const usernameDisplay = document.getElementById('current-username-display');
 
-        // 1. Get username from localStorage (saved by index.html handleAuth)
-        const username = localStorage.getItem('chat_username');
+        // 1. Get username from localStorage
+        let username = localStorage.getItem('chat_username');
 
-        // 2. Security Check: If no user, send back to login
-        if (!username) {
+        // Ensure we actually have a username
+        if (!username || username === 'undefined' || username === 'null') {
+            console.error("No username found in localStorage. Redirecting...");
             window.location.href = '/'; 
         } else {
-            // Update UI with our name
             usernameDisplay.innerText = username;
-            
-            // 3. Connect and Join
-            socket.on('connect', () => {
-                socket.emit('join', username);
-            });
         }
+
+        // 2. Setup Socket Events
+        socket.on('connect', () => {
+            console.log("Connected to server as:", username);
+            socket.emit('join', username);
+        });
+
+        // Re-emit join on reconnect
+        socket.on('reconnect', () => {
+            if (username) socket.emit('join', username);
+        });
 
         // Handle incoming messages
         socket.on('message', (data) => {
@@ -287,13 +293,16 @@
             users.forEach(user => {
                 const div = document.createElement('div');
                 div.className = 'user-item hover:bg-slate-800/50 transition-colors';
+                const displayName = user.username || "Unknown User";
+                const isThisMe = displayName === username;
+                
                 div.innerHTML = `
                     <div class="avatar">
                         <img src="default.png" alt="pfp" onerror="this.src='https://via.placeholder.com/40?text=?'">
                         <div class="status-dot"></div>
                     </div>
-                    <div class="text-sm font-bold ${user.username === username ? 'text-purple-400' : 'text-slate-200'}">
-                        ${user.username} ${user.username === username ? '(You)' : ''}
+                    <div class="text-sm font-bold ${isThisMe ? 'text-purple-400' : 'text-slate-200'}">
+                        ${displayName} ${isThisMe ? '(You)' : ''}
                     </div>
                 `;
                 playerList.appendChild(div);
@@ -304,9 +313,11 @@
         chatForm.onsubmit = (e) => {
             e.preventDefault();
             const text = messageInput.value.trim();
-            if (text) {
+            if (text && socket.connected) {
                 socket.emit('sendMessage', { text: text });
                 messageInput.value = '';
+            } else if (!socket.connected) {
+                console.warn("Socket disconnected. Trying to reconnect...");
             }
         };
 
