@@ -12,6 +12,11 @@ const PORT = process.env.PORT || 3000;
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Root route to serve the main HTML file
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // Store active users: { socketId: { username, age, gender, ... } }
 const users = new Map();
 
@@ -71,9 +76,6 @@ io.on('connection', (socket) => {
 
             // Send to recipient
             io.to(recipientSocketId).emit('privateMessage', dmPayload);
-
-            // Optional: Send back to sender for their own local history/confirmation
-            // socket.emit('privateMessageSent', { ...dmPayload, target: data.target });
         } else {
             // Recipient not found or offline
             socket.emit('message', {
