@@ -26,18 +26,26 @@ const onlineUsers = new Map();
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
+    // This 'join' event is triggered by chat.html using the username from localStorage
     socket.on('join', (username) => {
+        // Clean the username or default to Guest
+        const cleanUsername = username ? username.trim() : "Guest_" + socket.id.substring(0, 4);
+        
         onlineUsers.set(socket.id, {
-            username: username,
+            username: cleanUsername,
             id: socket.id,
             status: 'online'
         });
         
+        console.log(`${cleanUsername} joined the chat`);
+
+        // Send the updated user list to everyone
         io.emit('userListUpdate', Array.from(onlineUsers.values()));
         
+        // Broadcast join message
         io.emit('message', {
             username: 'System',
-            text: `${username} has joined the lounge!`,
+            text: `${cleanUsername} has joined the lounge!`,
             system: true,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
@@ -58,8 +66,10 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         const user = onlineUsers.get(socket.id);
         if (user) {
+            const leftUsername = user.username;
             onlineUsers.delete(socket.id);
             io.emit('userListUpdate', Array.from(onlineUsers.values()));
+            console.log(`${leftUsername} disconnected`);
         }
     });
 });
