@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stunning Hello World</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;700&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #0f172a;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Animated Mesh Gradient Background */
+        .bg-glow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+        }
+
+        .blob {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            filter: blur(80px);
+            border-radius: 50%;
+            opacity: 0.4;
+            animation: move 20s infinite alternate;
+        }
+
+        @keyframes move {
+            from { transform: translate(-20%, -20%) scale(1); }
+            to { transform: translate(20%, 20%) scale(1.2); }
+        }
+
+        /* Glassmorphism Card */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: transform 0.1s ease-out;
+            transform-style: preserve-3d;
+        }
+
+        .content-inner {
+            transform: translateZ(50px);
+        }
+
+        .text-gradient {
+            background: linear-gradient(to right, #818cf8, #c084fc, #fb7185);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn-shine {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-shine::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg);
+            transition: 0.5s;
+        }
+
+        .btn-shine:hover::after {
+            left: 100%;
+        }
+
+        /* Custom Notification Style */
+        #toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            transform: translateY(150%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        #toast.show {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-glow">
+        <div class="blob"></div>
+    </div>
+
+    <!-- Main Interactive Card -->
+    <div id="card" class="glass-card p-12 rounded-[2.5rem] max-w-md w-full mx-4 text-center">
+        <div class="content-inner">
+            <div class="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/5 border border-white/10">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                </svg>
+            </div>
+            
+            <h1 class="text-5xl font-bold tracking-tight text-white mb-2">
+                Hello <span class="text-gradient">World</span>
+            </h1>
+            
+            <p class="text-slate-400 text-lg mb-8 leading-relaxed">
+                Welcome to the next generation of web interfaces. Interactive, immersive, and elegantly crafted.
+            </p>
+
+            <button id="cta-btn" class="btn-shine w-full py-4 px-8 bg-white text-slate-950 font-bold rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-white/10">
+                Explore Universe
+            </button>
+            
+            <div class="mt-6 flex justify-center gap-4">
+                <div class="h-1 w-8 rounded-full bg-indigo-500/30"></div>
+                <div class="h-1 w-8 rounded-full bg-purple-500/30"></div>
+                <div class="h-1 w-8 rounded-full bg-pink-500/30"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Toast Notification -->
+    <div id="toast" class="bg-white/10 backdrop-blur-md border border-white/10 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
+        <span class="w-2 h-2 rounded-full bg-green-400 animate-ping"></span>
+        <p class="font-medium">System initialized successfully!</p>
+    </div>
+
+    <script>
+        const card = document.getElementById('card');
+        const btn = document.getElementById('cta-btn');
+        const toast = document.getElementById('toast');
+
+        // 3D Tilt Effect
+        document.addEventListener('mousemove', (e) => {
+            const xAxis = (window.innerWidth / 2 - e.pageX) / 25;
+            const yAxis = (window.innerHeight / 2 - e.pageY) / 25;
+            card.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
+        });
+
+        // Reset rotation on mouse leave
+        document.addEventListener('mouseleave', () => {
+            card.style.transform = `rotateY(0deg) rotateX(0deg)`;
+            card.style.transition = 'all 0.5s ease';
+        });
+
+        document.addEventListener('mouseenter', () => {
+            card.style.transition = 'none';
+        });
+
+        // Interaction Logic
+        btn.addEventListener('click', () => {
+            // Show custom notification
+            toast.classList.add('show');
+            
+            // Particle effect simulation (console log)
+            console.log("Exploring the universe...");
+            
+            // Hide toast after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+
+            // Subtle button animation
+            btn.innerHTML = "Initializing...";
+            setTimeout(() => {
+                btn.innerHTML = "Explore Universe";
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
