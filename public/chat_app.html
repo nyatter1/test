@@ -27,9 +27,22 @@
         }
         .rank-owner { background: #ef4444; color: white; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
         .rank-dev { background: #0ea5e9; color: white; box-shadow: 0 0 8px rgba(14, 165, 233, 0.4); }
+
+        /* Profile Modal/Overlay Animation */
+        #profile-overlay {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.95);
+        }
+        #profile-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1);
+        }
     </style>
 </head>
-<body class="h-screen flex p-4 gap-4">
+<body class="h-screen flex p-4 gap-4 relative">
     <!-- Sidebar -->
     <aside class="w-80 glass rounded-3xl flex flex-col overflow-hidden shrink-0 hidden md:flex">
         <div class="p-6 border-b border-zinc-800 flex items-center justify-between">
@@ -55,9 +68,47 @@
         </div>
     </main>
 
+    <!-- Profile Overlay Card -->
+    <div id="profile-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div class="w-full max-w-sm bg-zinc-900 rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl relative">
+            <button onclick="closeProfile()" class="absolute top-4 right-4 z-10 bg-black/20 hover:bg-black/40 p-2 rounded-full text-white/50 hover:text-white transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            
+            <!-- Banner -->
+            <div class="h-32 bg-black w-full"></div>
+            
+            <div class="px-6 pb-8 text-center -mt-12">
+                <!-- Avatar -->
+                <div class="inline-block p-1 bg-zinc-900 rounded-3xl mb-4">
+                    <img src="default.png" class="w-24 h-24 rounded-[1.8rem] border-4 border-zinc-900 object-cover shadow-xl" alt="pfp">
+                </div>
+                
+                <h3 id="p-username" class="text-2xl font-800 tracking-tighter text-white mb-1">Username</h3>
+                <div id="p-ranks" class="mb-4"></div>
+                
+                <div class="grid grid-cols-2 gap-3 mb-6">
+                    <div class="bg-zinc-800/50 p-3 rounded-2xl border border-white/5">
+                        <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Age</p>
+                        <p id="p-age" class="text-sm font-bold text-indigo-400">18</p>
+                    </div>
+                    <div class="bg-zinc-800/50 p-3 rounded-2xl border border-white/5">
+                        <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Gender</p>
+                        <p id="p-gender" class="text-sm font-bold text-indigo-400">Male</p>
+                    </div>
+                </div>
+
+                <div class="bg-indigo-600/10 border border-indigo-500/20 py-2 rounded-xl">
+                    <span class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">View Profile</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const socket = io();
         const profile = JSON.parse(localStorage.getItem('chat_profile'));
+        let currentOnlineUsers = [];
 
         const getRankHtml = (username) => {
             if (!username) return '';
@@ -80,7 +131,7 @@
                 div.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
                 div.innerHTML = `
                     <div class="flex gap-3 max-w-[75%] ${isMe ? 'flex-row-reverse' : ''}">
-                        <img src="default.png" class="w-8 h-8 rounded-lg shrink-0 border border-white/10" alt="pfp">
+                        <img src="default.png" class="w-8 h-8 rounded-lg shrink-0 border border-white/10 cursor-pointer hover:scale-105 transition-transform" onclick="openProfile('${data.username}')" alt="pfp">
                         <div class="${isMe ? 'bg-indigo-600 text-right' : 'bg-zinc-800'} p-3 rounded-2xl shadow-lg overflow-hidden">
                             <p class="text-[10px] font-black opacity-50 mb-1 uppercase tracking-tight">
                                 ${data.username} ${getRankHtml(data.username)}
@@ -95,21 +146,44 @@
         });
 
         socket.on('userListUpdate', (users) => {
+            currentOnlineUsers = users;
             document.getElementById('user-count').innerText = `${users.length} Online`;
             const list = document.getElementById('user-list');
             list.innerHTML = users.map(u => `
-                <div class="flex items-center gap-3 p-2 rounded-xl bg-zinc-900/50 border border-white/5">
-                    <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center shrink-0">
+                <div onclick="openProfile('${u.username}')" class="flex items-center gap-3 p-2 rounded-xl bg-zinc-900/50 border border-white/5 hover:bg-zinc-800 transition-all cursor-pointer group">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center shrink-0 overflow-hidden">
                         <img src="default.png" class="w-full h-full rounded-lg object-cover" alt="pfp">
                     </div>
                     <div class="flex flex-col min-w-0">
-                        <span class="text-sm font-bold truncate text-zinc-200">
+                        <span class="text-sm font-bold truncate text-zinc-200 group-hover:text-indigo-400 transition-colors">
                             ${u.username} ${getRankHtml(u.username)}
                         </span>
                         <span class="text-[9px] font-bold text-zinc-500 uppercase">${u.age || '??'}y/o • ${u.gender || 'Unknown'}</span>
                     </div>
                 </div>
             `).join('');
+        });
+
+        function openProfile(username) {
+            const user = currentOnlineUsers.find(u => u.username.toLowerCase() === username.toLowerCase());
+            // Fallback if user left but message remains
+            const displayUser = user || { username: username, age: '??', gender: 'Hidden' };
+            
+            document.getElementById('p-username').innerText = displayUser.username;
+            document.getElementById('p-ranks').innerHTML = getRankHtml(displayUser.username);
+            document.getElementById('p-age').innerText = displayUser.age;
+            document.getElementById('p-gender').innerText = displayUser.gender;
+            
+            document.getElementById('profile-overlay').classList.add('active');
+        }
+
+        function closeProfile() {
+            document.getElementById('profile-overlay').classList.remove('active');
+        }
+
+        // Close on clicking outside
+        document.getElementById('profile-overlay').addEventListener('click', (e) => {
+            if(e.target.id === 'profile-overlay') closeProfile();
         });
 
         document.getElementById('chat-form').onsubmit = (e) => {
