@@ -5,8 +5,6 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-
-// Initialize Socket.io
 const io = new Server(server, {
     cors: {
         origin: "*",
@@ -14,75 +12,111 @@ const io = new Server(server, {
     }
 });
 
-// Middleware to serve static assets if you have a public folder
-app.use('/public', express.static(path.join(__dirname, 'public')));
+// Port configuration
+const PORT = process.env.PORT || 3000;
 
-// Serve the index.html file
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, 'public')));
 
-// State management for online users
-// Maps socket IDs to user profile objects
-const onlineUsers = new Map();
+// In-memory state for basic real-time functionality
+// Note: In production, you would typically use a database or Redis
+const activeUsers = new Map();
+const messageHistory = [];
+const MAX_HISTORY = 100;
 
 io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
+    console.log('A user connected:', socket.id);
 
-    // Handle user joining the lounge
-    socket.on('join', (profile) => {
-        if (!profile || !profile.username) return;
-
-        // Store the user data
+    // When a user joins the chat with their profile
+    socket.on('join', (userProfile) => {
         const userData = {
-            id: socket.id,
-            username: profile.username,
-            age: profile.age,
-            gender: profile.gender
+            ...userProfile,
+            socketId: socket.id,
+            joinedAt: new Date()
         };
         
-        onlineUsers.set(socket.id, userData);
+        activeUsers.set(socket.id, userData);
 
-        // Notify others that someone joined
-        socket.broadcast.emit('message', {
-            system: true,
-            text: `${userData.username} entered the lounge`
-        });
+        // Send message history to the new user
+        socket.emit('history', messageHistory);
 
-        // Update the global player list for everyone
-        io.emit('userListUpdate', Array.from(onlineUsers.values()));
+        // Broadcast to everyone that a new user joined
+        io.emit('userListUpdate', Array.from(activeUsers.values()));
+        
+        // System message about the new user
+        const systemMsg = {
+            id: `sys-${Date.now()}`,
+            username: 'System',
+            text: `${userData.username} has joined the lounge.`,
+            timestamp: new Date(),
+            type: 'system'
+        };
+        io.emit('message', systemMsg);
     });
 
-    // Handle chat messages
-    socket.on('sendMessage', (data) => {
-        const user = onlineUsers.get(socket.id);
-        if (user && data.text) {
-            io.emit('message', {
-                username: user.username,
-                text: data.text,
-                system: false
-            });
+    // Handling new chat messages
+    socket.on('sendMessage', (messageText) => {
+        const user = activeUsers.get(socket.id);
+        if (!user) return;
+
+        const newMessage = {
+            id: `msg-${Date.now()}-${socket.id}`,
+            userId: user.uid,
+            username: user.username,
+            text: messageText,
+            timestamp: new Date(),
+            type: 'user'
+        };
+
+        // Store in history
+        messageHistory.push(newMessage);
+        if (messageHistory.length > MAX_HISTORY) {
+            messageHistory.shift();
         }
+
+        // Broadcast to all users
+        io.emit('message', newMessage);
     });
 
-    // Handle disconnection
-    socket.on('disconnect', () => {
-        const user = onlineUsers.get(socket.id);
+    // Handling typing indicators
+    socket.on('typing', (isTyping) => {
+        const user = activeUsers.get(socket.id);
         if (user) {
-            socket.broadcast.emit('message', {
-                system: true,
-                text: `${user.username} left the lounge`
+            socket.broadcast.emit('userTyping', {
+                username: user.username,
+                isTyping: isTyping
             });
-            onlineUsers.delete(socket.id);
-            
-            // Refresh the list for remaining users
-            io.emit('userListUpdate', Array.from(onlineUsers.values()));
         }
-        console.log('User disconnected:', socket.id);
+    });
+
+    // Handling disconnection
+    socket.on('disconnect', () => {
+        const user = activeUsers.get(socket.id);
+        if (user) {
+            console.log('User disconnected:', user.username);
+            
+            // System message about the departure
+            const systemMsg = {
+                id: `sys-out-${Date.now()}`,
+                username: 'System',
+                text: `${user.username} has left the lounge.`,
+                timestamp: new Date(),
+                type: 'system'
+            };
+            
+            activeUsers.delete(socket.id);
+            io.emit('userListUpdate', Array.from(activeUsers.values()));
+            io.emit('message', systemMsg);
+        }
     });
 });
 
-const PORT = process.env.PORT || 3000;
+// Error handling for the server
+server.on('error', (err) => {
+    console.error('Server error:', err);
+});
+
+// Start the server
 server.listen(PORT, () => {
-    console.log(`Live Lounge server is running on port ${PORT}`);
+    console.log(`Lounge Server running on port ${PORT}`);
 });
