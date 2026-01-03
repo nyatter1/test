@@ -12,14 +12,17 @@ const io = new Server(server, {
     }
 });
 
-// Port configuration
 const PORT = process.env.PORT || 3000;
 
-// Serve static files from the public directory
-app.use(express.static(path.join(__dirname, 'public')));
+// 1. Serve static files from the root directory (where index.html is located)
+app.use(express.static(__dirname));
+
+// 2. Explicitly handle the root route to prevent "Cannot GET /"
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // In-memory state for basic real-time functionality
-// Note: In production, you would typically use a database or Redis
 const activeUsers = new Map();
 const messageHistory = [];
 const MAX_HISTORY = 100;
@@ -27,7 +30,6 @@ const MAX_HISTORY = 100;
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
-    // When a user joins the chat with their profile
     socket.on('join', (userProfile) => {
         const userData = {
             ...userProfile,
@@ -36,25 +38,19 @@ io.on('connection', (socket) => {
         };
         
         activeUsers.set(socket.id, userData);
-
-        // Send message history to the new user
         socket.emit('history', messageHistory);
-
-        // Broadcast to everyone that a new user joined
         io.emit('userListUpdate', Array.from(activeUsers.values()));
         
-        // System message about the new user
         const systemMsg = {
             id: `sys-${Date.now()}`,
             username: 'System',
-            text: `${userData.username} has joined the lounge.`,
+            text: `${userData.username || 'Someone'} has joined the lounge.`,
             timestamp: new Date(),
             type: 'system'
         };
         io.emit('message', systemMsg);
     });
 
-    // Handling new chat messages
     socket.on('sendMessage', (messageText) => {
         const user = activeUsers.get(socket.id);
         if (!user) return;
@@ -68,55 +64,26 @@ io.on('connection', (socket) => {
             type: 'user'
         };
 
-        // Store in history
         messageHistory.push(newMessage);
-        if (messageHistory.length > MAX_HISTORY) {
-            messageHistory.shift();
-        }
+        if (messageHistory.length > MAX_HISTORY) messageHistory.shift();
 
-        // Broadcast to all users
         io.emit('message', newMessage);
     });
 
-    // Handling typing indicators
-    socket.on('typing', (isTyping) => {
-        const user = activeUsers.get(socket.id);
-        if (user) {
-            socket.broadcast.emit('userTyping', {
-                username: user.username,
-                isTyping: isTyping
-            });
-        }
-    });
-
-    // Handling disconnection
     socket.on('disconnect', () => {
         const user = activeUsers.get(socket.id);
         if (user) {
-            console.log('User disconnected:', user.username);
-            
-            // System message about the departure
-            const systemMsg = {
-                id: `sys-out-${Date.now()}`,
-                username: 'System',
-                text: `${user.username} has left the lounge.`,
-                timestamp: new Date(),
-                type: 'system'
-            };
-            
             activeUsers.delete(socket.id);
             io.emit('userListUpdate', Array.from(activeUsers.values()));
-            io.emit('message', systemMsg);
+            io.emit('message', {
+                username: 'System',
+                text: `${user.username} has left.`,
+                type: 'system'
+            });
         }
     });
 });
 
-// Error handling for the server
-server.on('error', (err) => {
-    console.error('Server error:', err);
-});
-
-// Start the server
 server.listen(PORT, () => {
-    console.log(`Lounge Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
