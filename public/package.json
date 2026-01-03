@@ -1,0 +1,19 @@
+{
+"name": "chatapp-server",
+"version": "1.0.0",
+"description": "A real-time chat application using Node.js, Express, and Socket.io",
+"main": "server.js",
+"scripts": {
+"start": "node server.js",
+"dev": "nodemon server.js"
+},
+"dependencies": {
+"express": "^4.18.2",
+"socket.io": "^4.7.2"
+},
+"engines": {
+"node": ">=14.0.0"
+},
+"author": "",
+"license": "ISC"
+}
