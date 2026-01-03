@@ -7,55 +7,60 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const PORT = process.env.PORT || 3000;
+// Middleware to serve static files from the root directory
+// This ensures index.html, chat_app.html, etc., are accessible
+app.use(express.static(__dirname));
 
-// Serve static files from the public directory
-// This handles chat_app.html, CSS, and JS files automatically
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Root route to serve the main HTML file
-// Fixed the double 'public' path issue for Render/Linux environments
+// Route for the main landing page (Signup/Login)
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Explicit route for chat_app.html just in case
+// Route for the chat interface
 app.get('/chat', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'chat_app.html'));
+    res.sendFile(path.join(__dirname, 'chat_app.html'));
 });
 
-// Store active users: { socketId: { username, age, gender, ... } }
-const users = new Map();
+// In-memory store for active users
+let onlineUsers = [];
 
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
-    // When a user joins the lounge
+    // Handle user joining with their profile data
     socket.on('join', (profile) => {
-        // Store profile with socket ID
-        users.set(socket.id, {
-            ...profile,
-            socketId: socket.id,
-            joinedAt: new Date()
-        });
+        if (!profile || !profile.username) return;
 
-        // Broadcast to everyone that a user joined
+        // Store user data associated with the socket ID
+        const userData = {
+            id: socket.id,
+            username: profile.username,
+            age: profile.age,
+            gender: profile.gender,
+            uid: profile.uid
+        };
+
+        onlineUsers.push(userData);
+
+        // Notify everyone that a new user joined
         io.emit('message', {
             system: true,
-            text: `${profile.username} has entered the lounge.`
+            text: `${profile.username} has entered the lounge`,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
 
-        // Update the global user list for everyone
-        updateUserList();
+        // Broadcast the updated user list to all clients
+        io.emit('userListUpdate', onlineUsers);
     });
 
-    // Handle Public Messages
+    // Handle incoming chat messages (Public)
     socket.on('sendMessage', (data) => {
-        const user = users.get(socket.id);
-        if (user) {
+        const user = onlineUsers.find(u => u.id === socket.id);
+        if (user && data.text) {
             io.emit('message', {
                 username: user.username,
                 text: data.text,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 system: false
             });
         }
@@ -63,59 +68,56 @@ io.on('connection', (socket) => {
 
     // Handle Private Messages (DMs)
     socket.on('privateMessage', (data) => {
-        const sender = users.get(socket.id);
-        if (!sender) return;
+        const sender = onlineUsers.find(u => u.id === socket.id);
+        if (!sender || !data.target || !data.text) return;
 
-        // Find the recipient by username (case insensitive)
-        const recipientEntry = Array.from(users.entries()).find(([id, profile]) => 
-            profile.username.toLowerCase() === data.target.toLowerCase()
+        // Find the recipient in the online users list
+        const recipient = onlineUsers.find(u => 
+            u.username.toLowerCase() === data.target.toLowerCase()
         );
 
-        if (recipientEntry) {
-            const [recipientSocketId, recipientProfile] = recipientEntry;
-            
+        if (recipient) {
             const dmPayload = {
                 username: sender.username,
                 text: data.text,
-                timestamp: new Date(),
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 isPrivate: true
             };
 
-            // Send to recipient
-            io.to(recipientSocketId).emit('privateMessage', dmPayload);
+            // Send specifically to the recipient's socket ID
+            io.to(recipient.id).emit('privateMessage', dmPayload);
         } else {
-            // Recipient not found or offline
+            // Notify sender if user is offline
             socket.emit('message', {
                 system: true,
-                text: `User ${data.target} is currently offline.`
+                text: `User ${data.target} is currently offline.`,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             });
         }
     });
 
-    // Handle Disconnection
+    // Handle disconnection
     socket.on('disconnect', () => {
-        const user = users.get(socket.id);
-        if (user) {
+        const userIndex = onlineUsers.findIndex(u => u.id === socket.id);
+        if (userIndex !== -1) {
+            const user = onlineUsers[userIndex];
+            onlineUsers.splice(userIndex, 1);
+
+            // Notify others
             io.emit('message', {
                 system: true,
-                text: `${user.username} has left the lounge.`
+                text: `${user.username} has left the lounge`,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             });
-            users.delete(socket.id);
-            updateUserList();
+
+            // Update user list for everyone
+            io.emit('userListUpdate', onlineUsers);
         }
         console.log('User disconnected:', socket.id);
     });
-
-    function updateUserList() {
-        const userList = Array.from(users.values()).map(u => ({
-            username: u.username,
-            age: u.age,
-            gender: u.gender
-        }));
-        io.emit('userListUpdate', userList);
-    }
 });
 
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
