@@ -77,7 +77,7 @@
             padding: 1.5rem;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 1.25rem;
         }
 
         .input-container {
@@ -185,8 +185,7 @@
                 <div class="px-6 mb-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Online Staff</div>
                 <div class="user-item">
                     <div class="avatar">
-                        <!-- Default PFP for Staff -->
-                        <img src="default.png" alt="Staff" onerror="this.src='https://via.placeholder.com/40?text=?'">
+                        <img src="default.png" alt="Staff" onerror="this.src='https://via.placeholder.com/40?text=S'">
                     </div>
                     <div><div class="text-sm font-bold">Admin_Zen <span class="staff-badge">Admin</span></div></div>
                 </div>
@@ -196,13 +195,16 @@
         <!-- CENTER PANEL -->
         <main class="chat-area">
             <header class="h-16 flex items-center px-6 bg-[#1e293b] border-b border-white/5">
-                <img src="/logo.png" alt="Logo" class="h-8 mr-4" onerror="this.style.display='none'">
                 <h1 class="font-extrabold text-lg">Public Lounge</h1>
+                <div id="self-display" class="ml-auto flex items-center gap-2">
+                    <span id="current-username" class="text-xs font-bold text-slate-400"></span>
+                    <div class="avatar w-8 h-8">
+                        <img src="default.png" alt="me">
+                    </div>
+                </div>
             </header>
 
-            <div class="messages-container" id="chat-messages">
-                <!-- Messages populate here -->
-            </div>
+            <div class="messages-container" id="chat-messages"></div>
 
             <div class="input-container">
                 <form class="chat-input-wrapper" id="chat-form">
@@ -215,9 +217,7 @@
         <!-- RIGHT PANEL -->
         <aside class="panel right-panel">
             <div class="p-4 border-b border-slate-800 text-xs font-bold text-slate-500 uppercase tracking-widest">Online Players</div>
-            <div class="flex-1 overflow-y-auto" id="player-list">
-                <!-- Live users populate here -->
-            </div>
+            <div class="flex-1 overflow-y-auto" id="player-list"></div>
         </aside>
 
     </div>
@@ -228,10 +228,13 @@
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
         const playerList = document.getElementById('player-list');
+        const currentUsernameSpan = document.getElementById('current-username');
 
-        // Simple login check/prompt
-        const username = prompt("Enter your username for the live chat:") || "Guest" + Math.floor(Math.random() * 1000);
+        // Retrieve username from localStorage (saved in index.html)
+        const username = localStorage.getItem('chat_username') || "Guest" + Math.floor(Math.random() * 1000);
+        currentUsernameSpan.innerText = username;
 
+        // Notify server that we joined
         socket.emit('join', username);
 
         socket.on('message', (data) => {
@@ -245,7 +248,6 @@
             } else {
                 div.className = `flex ${isMe ? 'justify-end' : 'justify-start'} mb-2 gap-3`;
                 
-                // Constructing message with default.png PFP
                 const avatarHtml = `
                     <div class="avatar w-10 h-10 flex-shrink-0">
                         <img src="default.png" alt="pfp" onerror="this.src='https://via.placeholder.com/40?text=?'">
