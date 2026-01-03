@@ -7,59 +7,56 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Middleware to serve static files from the root or a 'public' folder
-// Adjust this if your HTML files are inside a specific subdirectory
-app.use(express.static(__dirname));
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files from the 'public' directory
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
-// Explicit routes for your documents
+// Serve the main index.html file
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.get('/chat.html', (req, res) => {
-    // If chat.html is in a public folder, use path.join(__dirname, 'public', 'chat.html')
-    res.sendFile(path.join(__dirname, 'chat.html'));
-});
-
-// In-memory state (Note: resets when server restarts)
-const users = new Map(); // socket.id -> { username, id }
+// Store active users in a Map for quick lookup
+// Key: socket.id, Value: { username, age, gender, id }
+const users = new Map();
 
 io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
+    console.log('A user connected:', socket.id);
 
-    // This event is triggered by chat.html after the redirect
-    socket.on('join', (username) => {
-        const cleanName = username ? username.trim() : `Guest_${socket.id.substring(0, 4)}`;
-        
+    // Handle user joining with their profile object
+    socket.on('join', (profile) => {
+        if (!profile || !profile.username) return;
+
+        // Store user data in our map
         users.set(socket.id, {
             id: socket.id,
-            username: cleanName
+            username: profile.username,
+            age: profile.age || '??',
+            gender: profile.gender || 'Unknown'
         });
 
-        console.log(`${cleanName} joined the chat`);
-
-        // Update the online list for everyone
-        io.emit('userListUpdate', Array.from(users.values()));
-
-        // Send a welcome message
-        io.emit('message', {
-            username: 'System',
-            text: `${cleanName} has joined the lounge!`,
+        // Broadcast system message about the new arrival
+        socket.broadcast.emit('message', {
             system: true,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            text: `${profile.username} joined the lounge`
         });
+
+        // Update everyone's player list
+        io.emit('userListUpdate', Array.from(users.values()));
     });
 
-    // Handle chat messages
+    // Handle incoming messages
     socket.on('sendMessage', (data) => {
         const user = users.get(socket.id);
         if (user && data.text) {
-            io.emit('message', {
+            const messageData = {
                 username: user.username,
                 text: data.text,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            });
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                system: false
+            };
+            
+            // Send message to everyone including the sender
+            io.emit('message', messageData);
         }
     });
 
@@ -67,14 +64,19 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         const user = users.get(socket.id);
         if (user) {
-            console.log(`${user.username} disconnected`);
+            socket.broadcast.emit('message', {
+                system: true,
+                text: `${user.username} left the lounge`
+            });
             users.delete(socket.id);
+            
+            // Update the player list for remaining users
             io.emit('userListUpdate', Array.from(users.values()));
         }
+        console.log('User disconnected:', socket.id);
     });
 });
 
-// Render provides a PORT environment variable automatically
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
