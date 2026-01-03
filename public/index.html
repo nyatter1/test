@@ -9,42 +9,52 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background: #f0f2f5;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: screen;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+            /* Dark slate background to reduce eye strain */
+            background-color: #0f172a;
         }
-        
+
         .auth-card {
-            background: #ffffff;
+            background: #1e293b;
+            border: 1px solid rgba(148, 163, 184, 0.1);
             border-radius: 2rem;
             padding: 2.5rem;
             width: 100%;
             max-width: 420px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
         }
 
         .hidden {
             display: none;
         }
 
-        /* Input styling matching the "realistic" feel */
+        /* Dark mode input styling */
         .input-field {
             width: 100%;
             padding: 1rem 1.25rem;
             border-radius: 1rem;
-            background: #f8fafc;
-            border: 2px solid #f1f5f9;
+            background: #334155;
+            border: 2px solid #475569;
+            color: #f8fafc;
             outline: none;
             transition: all 0.2s ease;
             font-size: 0.95rem;
         }
 
+        .input-field::placeholder {
+            color: #94a3b8;
+        }
+
         .input-field:focus {
-            border-color: #7c3aed;
-            background: #fff;
-            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
+            border-color: #8b5cf6;
+            background: #1e293b;
+            box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
         }
 
         /* Cartoonish Realistic Button Gradient */
@@ -55,7 +65,7 @@
         }
 
         .btn-gradient:hover {
-            filter: brightness(1.05);
+            filter: brightness(1.1);
             transform: translateY(-1px);
         }
 
@@ -68,37 +78,50 @@
         .logo-img {
             width: 180px;
             height: auto;
-            margin-bottom: 1.5rem;
-            filter: drop-shadow(0 10px 8px rgba(0,0,0,0.04));
+            margin-bottom: 2rem;
+            filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.3));
+        }
+
+        /* Adjust labels and text for dark mode */
+        label {
+            color: #cbd5e1 !important;
+        }
+        
+        h2 {
+            color: #f8fafc !important;
+        }
+        
+        p {
+            color: #94a3b8 !important;
         }
     </style>
 </head>
-<body class="bg-slate-50 p-6">
+<body class="p-6">
 
     <div class="flex flex-col items-center w-full">
-        <!-- Logo - Replaces Chatlaxy text with logo.png -->
-        <img src="/logo.png" alt="ChatApp Logo" class="logo-img" onerror="this.src='https://via.placeholder.com/180x60?text=ChatApp'">
+        <!-- Logo -->
+        <img src="/logo.png" alt="ChatApp Logo" class="logo-img" onerror="this.src='https://via.placeholder.com/180x60/1e293b/f8fafc?text=ChatApp'">
 
         <!-- Login Container -->
         <div id="login-container" class="auth-card">
-            <h2 class="text-2xl font-bold text-slate-800 mb-2">Login</h2>
-            <p class="text-slate-500 text-sm mb-8">Welcome back! Please enter your details.</p>
+            <h2 class="text-2xl font-bold mb-2">Login</h2>
+            <p class="text-sm mb-8">Welcome back! Please enter your details.</p>
 
             <form onsubmit="handleSubmit(event)" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Email</label>
+                    <label class="block text-sm font-bold mb-1.5 ml-1">Email</label>
                     <input type="email" placeholder="Enter your email" required class="input-field">
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Password</label>
+                    <label class="block text-sm font-bold mb-1.5 ml-1">Password</label>
                     <input type="password" placeholder="••••••••" required class="input-field">
                 </div>
 
                 <div class="flex items-center justify-between py-1">
-                    <label class="flex items-center text-sm text-slate-600 font-medium cursor-pointer">
-                        <input type="checkbox" class="mr-2 w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"> Remember for 30 days
+                    <label class="flex items-center text-sm font-medium cursor-pointer">
+                        <input type="checkbox" class="mr-2 w-4 h-4 rounded border-slate-600 bg-slate-700 text-purple-600 focus:ring-purple-500 focus:ring-offset-slate-800"> Remember for 30 days
                     </label>
-                    <a href="#" class="text-sm font-bold text-purple-600 hover:text-purple-700">Forgot password?</a>
+                    <a href="#" class="text-sm font-bold text-purple-400 hover:text-purple-300">Forgot password?</a>
                 </div>
 
                 <button type="submit" class="w-full btn-gradient text-white font-bold py-3.5 rounded-2xl shadow-lg text-lg mt-2">
@@ -106,36 +129,36 @@
                 </button>
             </form>
 
-            <div class="mt-8 text-center border-t border-slate-100 pt-6">
-                <p class="text-slate-500 text-sm font-medium">
+            <div class="mt-8 text-center border-t border-slate-700 pt-6">
+                <p class="text-sm font-medium">
                     Don't have an account? 
-                    <button onclick="toggleAuth()" class="text-purple-600 font-bold hover:underline ml-1">Sign up for free</button>
+                    <button onclick="toggleAuth()" class="text-purple-400 font-bold hover:underline ml-1">Sign up for free</button>
                 </p>
             </div>
         </div>
 
         <!-- Signup Container -->
         <div id="signup-container" class="auth-card hidden">
-            <h2 class="text-2xl font-bold text-slate-800 mb-2">Create Account</h2>
-            <p class="text-slate-500 text-sm mb-8">Start your journey with ChatApp today.</p>
+            <h2 class="text-2xl font-bold mb-2">Create Account</h2>
+            <p class="text-sm mb-8">Start your journey with ChatApp today.</p>
 
             <form onsubmit="handleSubmit(event)" class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1.5 ml-1">First Name</label>
+                        <label class="block text-sm font-bold mb-1.5 ml-1">First Name</label>
                         <input type="text" placeholder="John" required class="input-field">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Last Name</label>
+                        <label class="block text-sm font-bold mb-1.5 ml-1">Last Name</label>
                         <input type="text" placeholder="Doe" required class="input-field">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Email</label>
+                    <label class="block text-sm font-bold mb-1.5 ml-1">Email</label>
                     <input type="email" placeholder="name@example.com" required class="input-field">
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Password</label>
+                    <label class="block text-sm font-bold mb-1.5 ml-1">Password</label>
                     <input type="password" placeholder="Create a password" required class="input-field">
                 </div>
 
@@ -144,16 +167,16 @@
                 </button>
             </form>
 
-            <div class="mt-8 text-center border-t border-slate-100 pt-6">
-                <p class="text-slate-500 text-sm font-medium">
+            <div class="mt-8 text-center border-t border-slate-700 pt-6">
+                <p class="text-sm font-medium">
                     Already have an account? 
-                    <button onclick="toggleAuth()" class="text-purple-600 font-bold hover:underline ml-1">Log in here</button>
+                    <button onclick="toggleAuth()" class="text-purple-400 font-bold hover:underline ml-1">Log in here</button>
                 </p>
             </div>
         </div>
 
         <!-- Toast Notification -->
-        <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-8 py-3.5 rounded-2xl shadow-2xl text-sm font-bold transition-all transform translate-y-20 opacity-0 pointer-events-none z-50">
+        <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-100 text-slate-900 px-8 py-3.5 rounded-2xl shadow-2xl text-sm font-bold transition-all transform translate-y-20 opacity-0 pointer-events-none z-50">
             Processing...
         </div>
     </div>
@@ -166,7 +189,6 @@
             login.classList.toggle('hidden');
             signup.classList.toggle('hidden');
             
-            // Scroll to top of form when switching
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
