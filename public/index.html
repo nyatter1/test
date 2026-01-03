@@ -5,120 +5,155 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChatApp - Login & Signup</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
             background: #f0f2f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: screen;
         }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.98);
-            border: 1px solid rgba(99, 102, 241, 0.1);
+        
+        .auth-card {
+            background: #ffffff;
+            border-radius: 2rem;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
         }
+
         .hidden {
             display: none;
         }
-        /* Gradient button matching the logo theme */
-        .gradient-btn {
-            background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
-            transition: all 0.3s ease;
+
+        /* Input styling matching the "realistic" feel */
+        .input-field {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            border-radius: 1rem;
+            background: #f8fafc;
+            border: 2px solid #f1f5f9;
+            outline: none;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
         }
-        .gradient-btn:hover {
-            filter: brightness(1.1);
-            transform: translateY(-1px);
-            box-shadow: 0 10px 15px -3px rgba(124, 58, 237, 0.3);
-        }
-        .gradient-btn:active {
-            transform: translateY(0px);
-        }
-        /* Custom input focus colors matching the theme */
-        .input-focus:focus {
+
+        .input-field:focus {
             border-color: #7c3aed;
-            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
+        }
+
+        /* Cartoonish Realistic Button Gradient */
+        .btn-gradient {
+            background: linear-gradient(180deg, #9061f9 0%, #6d28d9 100%);
+            border-bottom: 4px solid #4c1d95;
+            transition: all 0.1s ease;
+        }
+
+        .btn-gradient:hover {
+            filter: brightness(1.05);
+            transform: translateY(-1px);
+        }
+
+        .btn-gradient:active {
+            transform: translateY(2px);
+            border-bottom-width: 0px;
+            margin-top: 4px;
+        }
+
+        .logo-img {
+            width: 180px;
+            height: auto;
+            margin-bottom: 1.5rem;
+            filter: drop-shadow(0 10px 8px rgba(0,0,0,0.04));
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-50 p-6">
 
-    <div class="w-full max-w-md">
-        <!-- Logo Section - Removed box and text, using just logo.png -->
-        <div class="flex flex-col items-center mb-10">
-            <img src="/logo.png" alt="ChatApp Logo" class="w-48 h-auto drop-shadow-xl animate-pulse-slow" onerror="this.src='https://via.placeholder.com/200x80?text=ChatApp'">
-            <p class="text-slate-400 mt-4 font-medium tracking-wide">Ready to talk?</p>
-        </div>
+    <div class="flex flex-col items-center w-full">
+        <!-- Logo - Replaces Chatlaxy text with logo.png -->
+        <img src="/logo.png" alt="ChatApp Logo" class="logo-img" onerror="this.src='https://via.placeholder.com/180x60?text=ChatApp'">
 
-        <!-- Login Form -->
-        <div id="login-container" class="glass-card p-10 rounded-[2rem] shadow-2xl">
-            <h2 class="text-3xl font-extrabold text-slate-800 mb-8 tracking-tight">Login</h2>
-            <form onsubmit="handleSubmit(event)" class="space-y-5">
+        <!-- Login Container -->
+        <div id="login-container" class="auth-card">
+            <h2 class="text-2xl font-bold text-slate-800 mb-2">Login</h2>
+            <p class="text-slate-500 text-sm mb-8">Welcome back! Please enter your details.</p>
+
+            <form onsubmit="handleSubmit(event)" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-2 ml-1">Email</label>
-                    <input type="email" placeholder="Email address" required
-                        class="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none transition-all input-focus">
+                    <label class="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Email</label>
+                    <input type="email" placeholder="Enter your email" required class="input-field">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-2 ml-1">Password</label>
-                    <input type="password" placeholder="Password" required
-                        class="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none transition-all input-focus">
+                    <label class="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Password</label>
+                    <input type="password" placeholder="••••••••" required class="input-field">
                 </div>
-                <div class="flex items-center justify-between text-sm pt-2">
-                    <label class="flex items-center text-slate-500 cursor-pointer">
-                        <input type="checkbox" class="mr-2 rounded border-slate-300 text-purple-600 focus:ring-purple-500"> Remember me
+
+                <div class="flex items-center justify-between py-1">
+                    <label class="flex items-center text-sm text-slate-600 font-medium cursor-pointer">
+                        <input type="checkbox" class="mr-2 w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"> Remember for 30 days
                     </label>
-                    <a href="#" class="text-purple-600 font-bold hover:text-blue-600 transition-colors">Forgot?</a>
+                    <a href="#" class="text-sm font-bold text-purple-600 hover:text-purple-700">Forgot password?</a>
                 </div>
-                <button type="submit" class="w-full gradient-btn text-white font-bold py-4 px-4 rounded-2xl shadow-lg mt-4 text-lg">
+
+                <button type="submit" class="w-full btn-gradient text-white font-bold py-3.5 rounded-2xl shadow-lg text-lg mt-2">
                     Sign In
                 </button>
             </form>
-            <div class="mt-10 text-center">
-                <p class="text-slate-500 font-medium">
-                    New here? 
-                    <button onclick="toggleAuth()" class="text-purple-600 font-extrabold hover:text-blue-600 transition-colors">Create Account</button>
+
+            <div class="mt-8 text-center border-t border-slate-100 pt-6">
+                <p class="text-slate-500 text-sm font-medium">
+                    Don't have an account? 
+                    <button onclick="toggleAuth()" class="text-purple-600 font-bold hover:underline ml-1">Sign up for free</button>
                 </p>
             </div>
         </div>
 
-        <!-- Signup Form -->
-        <div id="signup-container" class="glass-card p-10 rounded-[2rem] shadow-2xl hidden">
-            <h2 class="text-3xl font-extrabold text-slate-800 mb-8 tracking-tight">Join Us</h2>
-            <form onsubmit="handleSubmit(event)" class="space-y-5">
+        <!-- Signup Container -->
+        <div id="signup-container" class="auth-card hidden">
+            <h2 class="text-2xl font-bold text-slate-800 mb-2">Create Account</h2>
+            <p class="text-slate-500 text-sm mb-8">Start your journey with ChatApp today.</p>
+
+            <form onsubmit="handleSubmit(event)" class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-2 ml-1">First Name</label>
-                        <input type="text" placeholder="First" required
-                            class="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none transition-all input-focus">
+                        <label class="block text-sm font-bold text-slate-700 mb-1.5 ml-1">First Name</label>
+                        <input type="text" placeholder="John" required class="input-field">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-2 ml-1">Last Name</label>
-                        <input type="text" placeholder="Last" required
-                            class="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none transition-all input-focus">
+                        <label class="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Last Name</label>
+                        <input type="text" placeholder="Doe" required class="input-field">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-2 ml-1">Email</label>
-                    <input type="email" placeholder="Email address" required
-                        class="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none transition-all input-focus">
+                    <label class="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Email</label>
+                    <input type="email" placeholder="name@example.com" required class="input-field">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-2 ml-1">Password</label>
-                    <input type="password" placeholder="Password" required
-                        class="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none transition-all input-focus">
+                    <label class="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Password</label>
+                    <input type="password" placeholder="Create a password" required class="input-field">
                 </div>
-                <button type="submit" class="w-full gradient-btn text-white font-bold py-4 px-4 rounded-2xl shadow-lg mt-4 text-lg">
-                    Sign Up
+
+                <button type="submit" class="w-full btn-gradient text-white font-bold py-3.5 rounded-2xl shadow-lg text-lg mt-4">
+                    Get Started
                 </button>
             </form>
-            <div class="mt-10 text-center">
-                <p class="text-slate-500 font-medium">
-                    Already a member? 
-                    <button onclick="toggleAuth()" class="text-purple-600 font-extrabold hover:text-blue-600 transition-colors">Sign In</button>
+
+            <div class="mt-8 text-center border-t border-slate-100 pt-6">
+                <p class="text-slate-500 text-sm font-medium">
+                    Already have an account? 
+                    <button onclick="toggleAuth()" class="text-purple-600 font-bold hover:underline ml-1">Log in here</button>
                 </p>
             </div>
         </div>
 
         <!-- Toast Notification -->
-        <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-8 py-4 rounded-2xl shadow-2xl text-sm font-bold transition-all transform translate-y-20 opacity-0 pointer-events-none">
+        <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-8 py-3.5 rounded-2xl shadow-2xl text-sm font-bold transition-all transform translate-y-20 opacity-0 pointer-events-none z-50">
             Processing...
         </div>
     </div>
@@ -130,11 +165,14 @@
             
             login.classList.toggle('hidden');
             signup.classList.toggle('hidden');
+            
+            // Scroll to top of form when switching
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function handleSubmit(e) {
             e.preventDefault();
-            showToast("Authenticating...");
+            showToast("Connecting to ChatApp...");
         }
 
         function showToast(message) {
