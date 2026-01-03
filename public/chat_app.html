@@ -44,7 +44,7 @@
         /* Context Menu Animation */
         #user-context-menu {
             transition: opacity 0.2s ease, transform 0.2s ease;
-            transform-origin: top right;
+            transform-origin: left center;
         }
     </style>
 </head>
@@ -60,8 +60,8 @@
             <button onclick="logout()" class="w-full py-2 text-xs font-bold text-zinc-500 hover:text-red-400 transition-colors uppercase tracking-widest">Logout</button>
         </div>
 
-        <!-- Mini Context Menu (The "Sidethingy" Option) -->
-        <div id="user-context-menu" class="hidden absolute right-4 w-48 glass border border-white/10 rounded-2xl shadow-2xl z-20 overflow-hidden">
+        <!-- Mini Context Menu (Fixed Position relative to sidebar item) -->
+        <div id="user-context-menu" class="hidden absolute left-[310px] w-48 glass border border-white/10 rounded-2xl shadow-2xl z-20 overflow-hidden">
             <div class="p-2">
                 <button id="view-profile-btn" class="w-full text-left px-4 py-3 text-xs font-bold text-zinc-300 hover:bg-indigo-600 hover:text-white rounded-xl transition-all flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
@@ -197,26 +197,31 @@
             const menu = document.getElementById('user-context-menu');
             const rect = event.currentTarget.getBoundingClientRect();
             
-            // Positioning the sidethingy menu relative to the item clicked
-            menu.style.top = `${event.clientY - 20}px`;
-            menu.style.left = `${event.clientX + 20}px`;
+            // Fixed positioning: Align vertically with the item, and always at the right edge of the sidebar
+            // The sidebar is relative, so we use offsetTop to get the distance from the top of the list
+            menu.style.top = `${event.currentTarget.offsetTop}px`;
             
-            if (event.clientX + 192 > window.innerWidth) {
-                menu.style.left = `${event.clientX - 200}px`;
-            }
+            // Reset transforms for animation
+            menu.style.opacity = "0";
+            menu.style.transform = "scale(0.9) translateX(-10px)";
+            menu.classList.remove('hidden');
+
+            // Small timeout to trigger transition
+            setTimeout(() => {
+                menu.style.opacity = "1";
+                menu.style.transform = "scale(1) translateX(0)";
+            }, 10);
 
             document.getElementById('view-profile-btn').onclick = () => {
                 openProfile(username);
-                menu.classList.add('hidden');
+                hideMenu();
             };
 
-            menu.classList.remove('hidden');
-            
-            // Auto hide menu on document click
             const hideMenu = () => {
                 menu.classList.add('hidden');
                 document.removeEventListener('click', hideMenu);
             };
+            
             setTimeout(() => document.addEventListener('click', hideMenu), 10);
         }
 
@@ -229,7 +234,6 @@
             document.getElementById('p-age').innerText = displayUser.age;
             document.getElementById('p-gender').innerText = displayUser.gender;
             
-            // Mocking Time/Date data for demonstration (normally comes from DB)
             const now = new Date();
             const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
