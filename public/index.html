@@ -3,186 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stunning Hello World</title>
+    <title>ChatApp - Login & Signup</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;700&display=swap');
-
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background: #0f172a;
-            overflow: hidden;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-family: 'Inter', sans-serif;
+            background: #f0f2f5;
         }
-
-        /* Animated Mesh Gradient Background */
-        .bg-glow {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
-        }
-
-        .blob {
-            position: absolute;
-            width: 500px;
-            height: 500px;
-            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-            filter: blur(80px);
-            border-radius: 50%;
-            opacity: 0.4;
-            animation: move 20s infinite alternate;
-        }
-
-        @keyframes move {
-            from { transform: translate(-20%, -20%) scale(1); }
-            to { transform: translate(20%, 20%) scale(1.2); }
-        }
-
-        /* Glassmorphism Card */
         .glass-card {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            transition: transform 0.1s ease-out;
-            transform-style: preserve-3d;
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid rgba(99, 102, 241, 0.1);
         }
-
-        .content-inner {
-            transform: translateZ(50px);
+        .hidden {
+            display: none;
         }
-
-        .text-gradient {
-            background: linear-gradient(to right, #818cf8, #c084fc, #fb7185);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        /* Gradient button matching the logo theme */
+        .gradient-btn {
+            background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
+            transition: all 0.3s ease;
         }
-
-        .btn-shine {
-            position: relative;
-            overflow: hidden;
+        .gradient-btn:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 15px -3px rgba(124, 58, 237, 0.3);
         }
-
-        .btn-shine::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-            transform: rotate(45deg);
-            transition: 0.5s;
+        .gradient-btn:active {
+            transform: translateY(0px);
         }
-
-        .btn-shine:hover::after {
-            left: 100%;
-        }
-
-        /* Custom Notification Style */
-        #toast {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            transform: translateY(150%);
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        #toast.show {
-            transform: translateY(0);
+        /* Custom input focus colors matching the theme */
+        .input-focus:focus {
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
         }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <div class="bg-glow">
-        <div class="blob"></div>
-    </div>
+    <div class="w-full max-w-md">
+        <!-- Logo Section - Removed box and text, using just logo.png -->
+        <div class="flex flex-col items-center mb-10">
+            <img src="/logo.png" alt="ChatApp Logo" class="w-48 h-auto drop-shadow-xl animate-pulse-slow" onerror="this.src='https://via.placeholder.com/200x80?text=ChatApp'">
+            <p class="text-slate-400 mt-4 font-medium tracking-wide">Ready to talk?</p>
+        </div>
 
-    <!-- Main Interactive Card -->
-    <div id="card" class="glass-card p-12 rounded-[2.5rem] max-w-md w-full mx-4 text-center">
-        <div class="content-inner">
-            <div class="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/5 border border-white/10">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                </svg>
+        <!-- Login Form -->
+        <div id="login-container" class="glass-card p-10 rounded-[2rem] shadow-2xl">
+            <h2 class="text-3xl font-extrabold text-slate-800 mb-8 tracking-tight">Login</h2>
+            <form onsubmit="handleSubmit(event)" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-2 ml-1">Email</label>
+                    <input type="email" placeholder="Email address" required
+                        class="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none transition-all input-focus">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-2 ml-1">Password</label>
+                    <input type="password" placeholder="Password" required
+                        class="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none transition-all input-focus">
+                </div>
+                <div class="flex items-center justify-between text-sm pt-2">
+                    <label class="flex items-center text-slate-500 cursor-pointer">
+                        <input type="checkbox" class="mr-2 rounded border-slate-300 text-purple-600 focus:ring-purple-500"> Remember me
+                    </label>
+                    <a href="#" class="text-purple-600 font-bold hover:text-blue-600 transition-colors">Forgot?</a>
+                </div>
+                <button type="submit" class="w-full gradient-btn text-white font-bold py-4 px-4 rounded-2xl shadow-lg mt-4 text-lg">
+                    Sign In
+                </button>
+            </form>
+            <div class="mt-10 text-center">
+                <p class="text-slate-500 font-medium">
+                    New here? 
+                    <button onclick="toggleAuth()" class="text-purple-600 font-extrabold hover:text-blue-600 transition-colors">Create Account</button>
+                </p>
             </div>
-            
-            <h1 class="text-5xl font-bold tracking-tight text-white mb-2">
-                Hello <span class="text-gradient">World</span>
-            </h1>
-            
-            <p class="text-slate-400 text-lg mb-8 leading-relaxed">
-                Welcome to the next generation of web interfaces. Interactive, immersive, and elegantly crafted.
-            </p>
+        </div>
 
-            <button id="cta-btn" class="btn-shine w-full py-4 px-8 bg-white text-slate-950 font-bold rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-white/10">
-                Explore Universe
-            </button>
-            
-            <div class="mt-6 flex justify-center gap-4">
-                <div class="h-1 w-8 rounded-full bg-indigo-500/30"></div>
-                <div class="h-1 w-8 rounded-full bg-purple-500/30"></div>
-                <div class="h-1 w-8 rounded-full bg-pink-500/30"></div>
+        <!-- Signup Form -->
+        <div id="signup-container" class="glass-card p-10 rounded-[2rem] shadow-2xl hidden">
+            <h2 class="text-3xl font-extrabold text-slate-800 mb-8 tracking-tight">Join Us</h2>
+            <form onsubmit="handleSubmit(event)" class="space-y-5">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-2 ml-1">First Name</label>
+                        <input type="text" placeholder="First" required
+                            class="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none transition-all input-focus">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-2 ml-1">Last Name</label>
+                        <input type="text" placeholder="Last" required
+                            class="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none transition-all input-focus">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-2 ml-1">Email</label>
+                    <input type="email" placeholder="Email address" required
+                        class="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none transition-all input-focus">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-2 ml-1">Password</label>
+                    <input type="password" placeholder="Password" required
+                        class="w-full px-5 py-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none transition-all input-focus">
+                </div>
+                <button type="submit" class="w-full gradient-btn text-white font-bold py-4 px-4 rounded-2xl shadow-lg mt-4 text-lg">
+                    Sign Up
+                </button>
+            </form>
+            <div class="mt-10 text-center">
+                <p class="text-slate-500 font-medium">
+                    Already a member? 
+                    <button onclick="toggleAuth()" class="text-purple-600 font-extrabold hover:text-blue-600 transition-colors">Sign In</button>
+                </p>
             </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-8 py-4 rounded-2xl shadow-2xl text-sm font-bold transition-all transform translate-y-20 opacity-0 pointer-events-none">
+            Processing...
         </div>
     </div>
 
-    <!-- Custom Toast Notification -->
-    <div id="toast" class="bg-white/10 backdrop-blur-md border border-white/10 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
-        <span class="w-2 h-2 rounded-full bg-green-400 animate-ping"></span>
-        <p class="font-medium">System initialized successfully!</p>
-    </div>
-
     <script>
-        const card = document.getElementById('card');
-        const btn = document.getElementById('cta-btn');
-        const toast = document.getElementById('toast');
-
-        // 3D Tilt Effect
-        document.addEventListener('mousemove', (e) => {
-            const xAxis = (window.innerWidth / 2 - e.pageX) / 25;
-            const yAxis = (window.innerHeight / 2 - e.pageY) / 25;
-            card.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
-        });
-
-        // Reset rotation on mouse leave
-        document.addEventListener('mouseleave', () => {
-            card.style.transform = `rotateY(0deg) rotateX(0deg)`;
-            card.style.transition = 'all 0.5s ease';
-        });
-
-        document.addEventListener('mouseenter', () => {
-            card.style.transition = 'none';
-        });
-
-        // Interaction Logic
-        btn.addEventListener('click', () => {
-            // Show custom notification
-            toast.classList.add('show');
+        function toggleAuth() {
+            const login = document.getElementById('login-container');
+            const signup = document.getElementById('signup-container');
             
-            // Particle effect simulation (console log)
-            console.log("Exploring the universe...");
+            login.classList.toggle('hidden');
+            signup.classList.toggle('hidden');
+        }
+
+        function handleSubmit(e) {
+            e.preventDefault();
+            showToast("Authenticating...");
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
             
-            // Hide toast after 3 seconds
             setTimeout(() => {
-                toast.classList.remove('show');
+                toast.classList.add('translate-y-20', 'opacity-0');
+                toast.classList.remove('translate-y-0', 'opacity-100');
             }, 3000);
-
-            // Subtle button animation
-            btn.innerHTML = "Initializing...";
-            setTimeout(() => {
-                btn.innerHTML = "Explore Universe";
-            }, 2000);
-        });
+        }
     </script>
 </body>
 </html>
