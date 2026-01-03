@@ -68,14 +68,6 @@
             background-position: right 1rem center;
             background-size: 1.5em;
         }
-
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 10px;
-        }
     </style>
 </head>
 <body class="p-6">
@@ -133,7 +125,6 @@
                             <option value="furry">Furry</option>
                             <option value="nonbinary">Non-binary</option>
                             <option value="other">Other</option>
-                            <option value="prefer-not-to-say">N/A</option>
                         </select>
                     </div>
                 </div>
@@ -163,9 +154,9 @@
     </div>
 
     <script>
-        // Populate Age 7-1000
+        // Populate Age 7-100
         const ageSelect = document.getElementById('age-select');
-        for (let i = 7; i <= 1000; i++) {
+        for (let i = 7; i <= 100; i++) {
             const opt = document.createElement('option');
             opt.value = i;
             opt.innerHTML = i;
@@ -175,7 +166,6 @@
         function toggle() {
             document.getElementById('login-container').classList.toggle('hidden');
             document.getElementById('signup-container').classList.toggle('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function handleAuth(e, type) {
@@ -185,19 +175,17 @@
             if (type === 'signup') {
                 username = document.getElementById('reg-username').value;
             } else {
-                // For login, use email prefix as a temp username
                 username = document.getElementById('login-email').value.split('@')[0];
             }
 
-            // Save the username for chat.html to retrieve
+            // Critical: Save for chat.html
             localStorage.setItem('chat_username', username);
             
             showToast(type === 'signup' ? "ACCOUNT CREATED!" : "WELCOME BACK!");
 
-            // Redirect to /chat.html after short delay
             setTimeout(() => {
                 window.location.href = '/chat.html';
-            }, 1200);
+            }, 1000);
         }
 
         function showToast(msg) {
@@ -209,7 +197,7 @@
             setTimeout(() => {
                 toast.classList.add('translate-y-20', 'opacity-0');
                 toast.classList.remove('translate-y-0', 'opacity-100');
-            }, 3000);
+            }, 2500);
         }
     </script>
 </body>
