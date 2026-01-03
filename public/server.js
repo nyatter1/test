@@ -5,93 +5,89 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
-});
+const io = new Server(server);
 
-const PORT = process.env.PORT || 3000;
-
-// 1. Serve static files from the root directory
+// Middleware to serve static files from the root directory
+// This ensures index.html, chat_app.html, etc., are accessible
 app.use(express.static(__dirname));
 
-// 2. Explicitly handle the root route
+// Route for the main landing page (Signup/Login)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// 3. Add a specific route for the chat page to ensure it doesn't loop back
+// Route for the chat interface
 app.get('/chat', (req, res) => {
     res.sendFile(path.join(__dirname, 'chat_app.html'));
 });
 
-// In-memory state for basic real-time functionality
-const activeUsers = new Map();
-const messageHistory = [];
-const MAX_HISTORY = 100;
+// In-memory store for active users
+let onlineUsers = [];
 
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
-    socket.on('join', (userProfile) => {
-        if (!userProfile || !userProfile.username) return;
+    // Handle user joining with their profile data
+    socket.on('join', (profile) => {
+        if (!profile || !profile.username) return;
 
+        // Store user data associated with the socket ID
         const userData = {
-            ...userProfile,
-            socketId: socket.id,
-            joinedAt: new Date()
+            id: socket.id,
+            username: profile.username,
+            age: profile.age,
+            gender: profile.gender,
+            uid: profile.uid
         };
-        
-        activeUsers.set(socket.id, userData);
-        socket.emit('history', messageHistory);
-        io.emit('userListUpdate', Array.from(activeUsers.values()));
-        
-        const systemMsg = {
-            id: `sys-${Date.now()}`,
-            username: 'System',
-            text: `${userData.username} has joined the lounge.`,
-            timestamp: new Date(),
-            system: true // Ensure frontend recognizes this as a system message
-        };
-        io.emit('message', systemMsg);
+
+        onlineUsers.push(userData);
+
+        // Notify everyone that a new user joined
+        io.emit('message', {
+            system: true,
+            text: `${profile.username} has entered the lounge`,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+
+        // Broadcast the updated user list to all clients
+        io.emit('userListUpdate', onlineUsers);
     });
 
+    // Handle incoming chat messages
     socket.on('sendMessage', (data) => {
-        const user = activeUsers.get(socket.id);
-        if (!user) return;
-
-        const newMessage = {
-            id: `msg-${Date.now()}-${socket.id}`,
-            userId: user.uid,
-            username: user.username,
-            text: data.text || data, // Handle both object and string inputs
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            timestamp: new Date(),
-            system: false
-        };
-
-        messageHistory.push(newMessage);
-        if (messageHistory.length > MAX_HISTORY) messageHistory.shift();
-
-        io.emit('message', newMessage);
-    });
-
-    socket.on('disconnect', () => {
-        const user = activeUsers.get(socket.id);
-        if (user) {
-            activeUsers.delete(socket.id);
-            io.emit('userListUpdate', Array.from(activeUsers.values()));
+        const user = onlineUsers.find(u => u.id === socket.id);
+        if (user && data.text) {
             io.emit('message', {
-                username: 'System',
-                text: `${user.username} has left.`,
-                system: true
+                username: user.username,
+                text: data.text,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                system: false
             });
         }
     });
+
+    // Handle disconnection
+    socket.on('disconnect', () => {
+        const userIndex = onlineUsers.findIndex(u => u.id === socket.id);
+        if (userIndex !== -1) {
+            const user = onlineUsers[userIndex];
+            onlineUsers.splice(userIndex, 1);
+
+            // Notify others
+            io.emit('message', {
+                system: true,
+                text: `${user.username} has left the lounge`,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+
+            // Update user list for everyone
+            io.emit('userListUpdate', onlineUsers);
+        }
+        console.log('User disconnected:', socket.id);
+    });
 });
 
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
