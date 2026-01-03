@@ -3,208 +3,315 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChatApp - Login & Signup</title>
+    <title>ChatApp - Live Lounge</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- In your Render app, ensure this script matches your socket.io version -->
+    <script src="/socket.io/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
             background-color: #0f172a;
+            color: #f8fafc;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
         }
 
-        .auth-card {
+        .main-container {
+            display: grid;
+            grid-template-columns: 280px 1fr 280px;
+            height: 100vh;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+            .side-panel { display: none; }
+        }
+
+        .panel {
             background: #1e293b;
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            border-radius: 2rem;
-            padding: 2.5rem;
-            width: 100%;
-            max-width: 480px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border-right: 1px solid rgba(148, 163, 184, 0.1);
+            display: flex;
+            flex-direction: column;
         }
 
-        .hidden { display: none; }
+        .right-panel {
+            border-right: none;
+            border-left: 1px solid rgba(148, 163, 184, 0.1);
+        }
 
-        .input-field {
-            width: 100%;
-            padding: 1rem 1.25rem;
-            border-radius: 1rem;
+        .nav-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #334155;
+            color: #94a3b8;
+        }
+
+        .nav-btn.active {
+            background: #7c3aed;
+            color: white;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background: #0f172a;
+        }
+
+        .chat-input-wrapper {
             background: #334155;
             border: 2px solid #475569;
-            color: #f8fafc;
-            outline: none;
-            transition: all 0.2s ease;
-            font-size: 0.95rem;
-        }
-
-        .input-field:focus {
-            border-color: #8b5cf6;
-            box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
-            background: #1e293b;
+            border-radius: 1.25rem;
+            display: flex;
+            align-items: center;
+            padding: 0.25rem 1rem;
         }
 
         .btn-gradient {
             background: linear-gradient(180deg, #9061f9 0%, #6d28d9 100%);
-            border-bottom: 4px solid #4c1d95;
-            color: white;
-            font-weight: 800;
-            cursor: pointer;
+            border-bottom: 3px solid #4c1d95;
             transition: all 0.1s;
         }
 
         .btn-gradient:active {
             transform: translateY(2px);
-            border-bottom-width: 0px;
+            border-bottom-width: 0;
         }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: #475569;
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .status-dot {
+            position: absolute;
+            bottom: 0px;
+            right: 0px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid #1e293b;
+            background: #10b981;
+        }
+
+        .system-msg {
+            font-size: 10px;
+            background: rgba(30, 41, 59, 0.5);
+            padding: 4px 12px;
+            border-radius: 99px;
+            color: #94a3b8;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 8px auto;
+        }
+
+        .hidden { display: none; }
         
-        select.input-field {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 1rem center;
-            background-size: 1.5em;
-        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
     </style>
 </head>
-<body class="p-6">
+<body>
 
-    <div class="flex flex-col items-center w-full">
-        <!-- Logo Section -->
-        <div class="mb-8 text-white font-black text-4xl tracking-tighter">
-            CHAT<span class="text-purple-500">APP</span>
-        </div>
+    <div class="main-container">
+        
+        <!-- LEFT PANEL -->
+        <aside class="panel side-panel">
+            <div class="flex gap-2 p-4 border-bottom border-white/5">
+                <button onclick="showTab('rules')" id="btn-rules" class="nav-btn active">Rules</button>
+                <button onclick="showTab('staff')" id="btn-staff" class="nav-btn">Staff</button>
+            </div>
 
-        <!-- Login Container -->
-        <div id="login-container" class="auth-card">
-            <h2 class="text-2xl font-bold mb-6 text-white text-center uppercase tracking-tight">Login</h2>
-            <form onsubmit="handleAuth(event, 'login')" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 mb-2 ml-1 uppercase">Email Address</label>
-                    <input type="email" id="login-email" placeholder="Enter your email" required class="input-field">
+            <div id="content-rules" class="flex-1 overflow-y-auto p-4">
+                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Community Rules</div>
+                <div class="space-y-3">
+                    <div class="text-sm text-slate-300 flex gap-2"><span class="text-purple-500 font-bold">1.</span> Respect all users.</div>
+                    <div class="text-sm text-slate-300 flex gap-2"><span class="text-purple-500 font-bold">2.</span> No toxicity or spam.</div>
+                    <div class="text-sm text-slate-300 flex gap-2"><span class="text-purple-500 font-bold">3.</span> NSFW content is banned.</div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 mb-2 ml-1 uppercase">Password</label>
-                    <input type="password" id="login-password" placeholder="••••••••" required class="input-field">
-                </div>
-                <button type="submit" class="w-full btn-gradient py-4 rounded-2xl text-lg mt-4 shadow-xl">
-                    Sign In
-                </button>
-            </form>
-            <p class="mt-8 text-center text-slate-400 text-sm">
-                Don't have an account? <button onclick="toggle()" class="text-purple-400 font-bold hover:text-purple-300 transition-colors">Sign up for free</button>
-            </p>
-        </div>
+            </div>
 
-        <!-- Signup Container -->
-        <div id="signup-container" class="auth-card hidden">
-            <h2 class="text-2xl font-bold mb-6 text-white text-center uppercase tracking-tight">Create Account</h2>
-            <form onsubmit="handleAuth(event, 'signup')" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 mb-2 ml-1 uppercase">Username</label>
-                    <input type="text" id="reg-username" placeholder="Choose a display name" required class="input-field">
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4">
+            <div id="content-staff" class="flex-1 overflow-y-auto p-4 hidden">
+                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Online Staff</div>
+                <div class="flex items-center gap-3 p-2 bg-purple-500/10 rounded-xl border border-purple-500/20">
+                    <div class="avatar"><img src="/public/default.png" alt="Staff"></div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-2 ml-1 uppercase">Age</label>
-                        <select id="age-select" required class="input-field">
-                            <option value="" disabled selected>Age</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-2 ml-1 uppercase">Gender</label>
-                        <select id="gender-select" required class="input-field">
-                            <option value="" disabled selected>Select</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="trans">Trans</option>
-                            <option value="furry">Furry</option>
-                            <option value="nonbinary">Non-binary</option>
-                            <option value="other">Other</option>
-                        </select>
+                        <div class="text-xs font-bold text-white">Admin_Zen</div>
+                        <div class="text-[10px] text-purple-400 font-black uppercase">Administrator</div>
                     </div>
                 </div>
+            </div>
+        </aside>
 
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 mb-2 ml-1 uppercase">Email</label>
-                    <input type="email" id="reg-email" placeholder="name@example.com" required class="input-field">
+        <!-- CENTER PANEL -->
+        <main class="flex flex-col relative overflow-hidden">
+            <header class="h-16 flex items-center px-6 bg-[#1e293b] border-b border-white/5">
+                <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
+                    <h1 class="font-extrabold text-lg tracking-tight">Public Lounge</h1>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 mb-2 ml-1 uppercase">Password</label>
-                    <input type="password" id="reg-password" placeholder="Create a strong password" required class="input-field">
+                <div class="ml-auto flex items-center gap-3">
+                    <div class="text-right">
+                        <div id="me-name" class="text-sm font-bold text-purple-400">Loading...</div>
+                        <div id="me-info" class="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">Profile Loading</div>
+                    </div>
+                    <div class="avatar border-2 border-purple-500/50">
+                        <img src="/public/default.png" alt="me">
+                    </div>
                 </div>
-                
-                <button type="submit" class="w-full btn-gradient py-4 rounded-2xl text-lg mt-4 shadow-xl">
-                    Register Now
-                </button>
-            </form>
-            <p class="mt-8 text-center text-slate-400 text-sm">
-                Already have an account? <button onclick="toggle()" class="text-purple-400 font-bold hover:text-purple-300 transition-colors">Log in here</button>
-            </p>
-        </div>
+            </header>
 
-        <!-- Toast Notification -->
-        <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white text-slate-900 px-10 py-4 rounded-2xl font-black transition-all transform translate-y-20 opacity-0 pointer-events-none shadow-2xl z-50">
-            SUCCESS!
-        </div>
+            <div class="messages-container" id="chat-messages"></div>
+
+            <div class="p-4 bg-[#1e293b] border-top border-white/5">
+                <form class="chat-input-wrapper" id="chat-form">
+                    <input type="text" placeholder="Type a message..." class="bg-transparent border-none text-white flex-1 p-3 outline-none" id="message-input" autocomplete="off">
+                    <button type="submit" class="btn-gradient text-white px-6 py-2 rounded-xl font-bold text-sm shadow-lg">Send</button>
+                </form>
+            </div>
+        </main>
+
+        <!-- RIGHT PANEL -->
+        <aside class="panel side-panel right-panel">
+            <div class="p-5 border-b border-slate-800 flex justify-between items-center">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Online Players</span>
+                <span id="user-count" class="bg-slate-700 text-slate-300 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
+            </div>
+            <div class="flex-1 overflow-y-auto" id="player-list"></div>
+        </aside>
+
     </div>
 
     <script>
-        // Populate Age 7-100
-        const ageSelect = document.getElementById('age-select');
-        for (let i = 7; i <= 100; i++) {
-            const opt = document.createElement('option');
-            opt.value = i;
-            opt.innerHTML = i;
-            ageSelect.appendChild(opt);
+        const socket = io();
+        const chatMessages = document.getElementById('chat-messages');
+        const chatForm = document.getElementById('chat-form');
+        const messageInput = document.getElementById('message-input');
+        const playerList = document.getElementById('player-list');
+
+        // 1. Get full profile object from localStorage
+        const savedProfile = localStorage.getItem('chat_profile');
+        const profile = savedProfile ? JSON.parse(savedProfile) : null;
+
+        if (!profile || !profile.username) {
+            console.error("No profile found. Redirecting to login...");
+            window.location.href = '/'; 
+        } else {
+            document.getElementById('me-name').innerText = profile.username;
+            document.getElementById('me-info').innerText = `${profile.age || '??'}Y/O • ${profile.gender || 'Unknown'}`;
         }
 
-        function toggle() {
-            document.getElementById('login-container').classList.toggle('hidden');
-            document.getElementById('signup-container').classList.toggle('hidden');
-        }
+        // 2. Setup Socket Events
+        socket.on('connect', () => {
+            // Send entire profile object so server knows age/gender
+            socket.emit('join', profile);
+        });
 
-        async function handleAuth(e, type) {
-            e.preventDefault();
+        socket.on('message', (data) => {
+            const div = document.createElement('div');
             
-            let username;
-            if (type === 'signup') {
-                username = document.getElementById('reg-username').value.trim();
+            if (data.system) {
+                div.className = "flex justify-center";
+                div.innerHTML = `<div class="system-msg">${data.text}</div>`;
             } else {
-                // For login, we take the part before @ as a temporary username
-                const email = document.getElementById('login-email').value;
-                username = email.split('@')[0];
+                const isMe = data.username === profile.username;
+                div.className = `flex ${isMe ? 'flex-row-reverse' : 'flex-row'} items-end gap-3 mb-4`;
+                
+                div.innerHTML = `
+                    <div class="avatar border-none w-8 h-8">
+                        <img src="/public/default.png" alt="pfp">
+                    </div>
+                    <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[75%]">
+                        <div class="flex items-center gap-2 mb-1 px-1">
+                            <span class="text-[9px] font-black uppercase text-slate-500">${data.username}</span>
+                            <span class="text-[8px] text-slate-600">${data.time}</span>
+                        </div>
+                        <div class="px-4 py-2 rounded-2xl text-sm ${isMe ? 'bg-purple-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'} shadow-xl">
+                            ${data.text}
+                        </div>
+                    </div>
+                `;
             }
 
-            if (!username) return;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
 
-            // Save the username explicitly
-            localStorage.setItem('chat_username', username);
+        socket.on('userListUpdate', (users) => {
+            playerList.innerHTML = '';
+            document.getElementById('user-count').innerText = users.length;
             
-            // Show feedback
-            showToast(type === 'signup' ? "ACCOUNT CREATED!" : "WELCOME BACK!");
+            users.forEach(user => {
+                const isThisMe = user.username === profile.username;
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-3 p-4 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer';
+                
+                div.innerHTML = `
+                    <div class="avatar">
+                        <img src="/public/default.png" alt="pfp">
+                        <div class="status-dot"></div>
+                    </div>
+                    <div class="flex-1 overflow-hidden">
+                        <div class="text-sm font-bold ${isThisMe ? 'text-purple-400' : 'text-slate-200'} truncate">
+                            ${user.username} ${isThisMe ? '(You)' : ''}
+                        </div>
+                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-tight">
+                            ${user.age || '??'}Y/O • ${user.gender || 'Unknown'}
+                        </div>
+                    </div>
+                `;
+                playerList.appendChild(div);
+            });
+        });
 
-            // Brief delay ensures localStorage is set and toast is visible
-            setTimeout(() => {
-                // Navigate to the chat page relative to the current site root
-                window.location.assign('/chat.html');
-            }, 1000);
-        }
+        chatForm.onsubmit = (e) => {
+            e.preventDefault();
+            const text = messageInput.value.trim();
+            if (text && socket.connected) {
+                socket.emit('sendMessage', { text: text });
+                messageInput.value = '';
+            }
+        };
 
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.innerText = msg;
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            toast.classList.add('translate-y-0', 'opacity-100');
-            
-            setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
-                toast.classList.remove('translate-y-0', 'opacity-100');
-            }, 2500);
+        function showTab(type) {
+            document.getElementById('content-rules').classList.add('hidden');
+            document.getElementById('content-staff').classList.add('hidden');
+            document.getElementById('btn-rules').classList.remove('active');
+            document.getElementById('btn-staff').classList.remove('active');
+            document.getElementById(`content-${type}`).classList.remove('hidden');
+            document.getElementById(`btn-${type}`).classList.add('active');
         }
     </script>
 </body>
