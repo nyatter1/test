@@ -13,10 +13,23 @@
         .chat-height { height: calc(100vh - 160px); }
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
+        
+        /* Rank Styles */
+        .rank-badge {
+            font-size: 8px;
+            font-weight: 900;
+            padding: 1px 4px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            margin-left: 4px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .rank-owner { background: #ef4444; color: white; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+        .rank-dev { background: #0ea5e9; color: white; box-shadow: 0 0 8px rgba(14, 165, 233, 0.4); }
     </style>
 </head>
 <body class="h-screen flex p-4 gap-4">
-
     <!-- Sidebar -->
     <aside class="w-80 glass rounded-3xl flex flex-col overflow-hidden shrink-0 hidden md:flex">
         <div class="p-6 border-b border-zinc-800 flex items-center justify-between">
@@ -46,8 +59,15 @@
         const socket = io();
         const profile = JSON.parse(localStorage.getItem('chat_profile'));
 
-        if (!profile) window.location.href = '/';
+        const getRankHtml = (username) => {
+            if (!username) return '';
+            const userLower = username.toLowerCase();
+            if (userLower === 'luna_midnight') return '<span class="rank-badge rank-owner">Owner</span>';
+            if (userLower === 'dev') return '<span class="rank-badge rank-dev">Dev</span>';
+            return '';
+        };
 
+        if (!profile) window.location.href = '/';
         socket.emit('join', profile);
 
         socket.on('message', (data) => {
@@ -59,9 +79,14 @@
                 const isMe = data.username === profile.username;
                 div.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
                 div.innerHTML = `
-                    <div class="max-w-[70%] ${isMe ? 'bg-indigo-600' : 'bg-zinc-800'} p-3 rounded-2xl shadow-lg">
-                        <p class="text-[10px] font-bold opacity-50 mb-1">${data.username}</p>
-                        <p class="text-sm">${data.text}</p>
+                    <div class="flex gap-3 max-w-[75%] ${isMe ? 'flex-row-reverse' : ''}">
+                        <img src="default.png" class="w-8 h-8 rounded-lg shrink-0 border border-white/10" alt="pfp">
+                        <div class="${isMe ? 'bg-indigo-600 text-right' : 'bg-zinc-800'} p-3 rounded-2xl shadow-lg overflow-hidden">
+                            <p class="text-[10px] font-black opacity-50 mb-1 uppercase tracking-tight">
+                                ${data.username} ${getRankHtml(data.username)}
+                            </p>
+                            <p class="text-sm">${data.text}</p>
+                        </div>
                     </div>
                 `;
             }
@@ -74,8 +99,15 @@
             const list = document.getElementById('user-list');
             list.innerHTML = users.map(u => `
                 <div class="flex items-center gap-3 p-2 rounded-xl bg-zinc-900/50 border border-white/5">
-                    <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-xs font-bold text-indigo-400">${u.username[0]}</div>
-                    <span class="text-sm font-bold">${u.username}</span>
+                    <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center shrink-0">
+                        <img src="default.png" class="w-full h-full rounded-lg object-cover" alt="pfp">
+                    </div>
+                    <div class="flex flex-col min-w-0">
+                        <span class="text-sm font-bold truncate text-zinc-200">
+                            ${u.username} ${getRankHtml(u.username)}
+                        </span>
+                        <span class="text-[9px] font-bold text-zinc-500 uppercase">${u.age || '??'}y/o • ${u.gender || 'Unknown'}</span>
+                    </div>
                 </div>
             `).join('');
         });
@@ -84,7 +116,7 @@
             e.preventDefault();
             const input = document.getElementById('msg-input');
             if (input.value.trim()) {
-                socket.emit('sendMessage', input.value);
+                socket.emit('sendMessage', { text: input.value });
                 input.value = '';
             }
         };
