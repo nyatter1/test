@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lounge - Auth</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // Initialize Auth
+        const initAuth = async () => {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        };
+        initAuth();
+
+        window.toggleAuthMode = () => {
+            const isLogin = document.getElementById('auth-title').innerText === 'SIGN UP';
+            document.getElementById('auth-title').innerText = isLogin ? 'LOG IN' : 'SIGN UP';
+            document.getElementById('auth-desc').innerText = isLogin ? 'Welcome back to the lounge' : 'Create your profile to join';
+            document.getElementById('submit-btn').innerText = isLogin ? 'Enter Lounge' : 'Create Account';
+            document.getElementById('toggle-link').innerText = isLogin ? "Don't have an account? Sign Up" : "Already have an account? Log In";
+            
+            // Hide/Show signup specific fields
+            document.getElementById('signup-fields').classList.toggle('hidden', isLogin);
+            document.getElementById('email-group').classList.toggle('hidden', isLogin);
+        };
+
+        const showMessage = (text, isError = true) => {
+            const msgBox = document.getElementById('message-box');
+            msgBox.innerText = text;
+            msgBox.className = `p-3 rounded-lg text-xs font-bold mb-4 ${isError ? 'bg-red-500/20 text-red-400 border border-red-500/50' : 'bg-green-500/20 text-green-400 border border-green-500/50'}`;
+            msgBox.classList.remove('hidden');
+        };
+
+        document.getElementById('auth-form').onsubmit = async (e) => {
+            e.preventDefault();
+            if (!auth.currentUser) return showMessage("Connecting to server...");
+
+            const isSignUp = document.getElementById('auth-title').innerText === 'SIGN UP';
+            const username = document.getElementById('username').value.trim().toLowerCase();
+            const password = document.getElementById('password').value;
+            const email = document.getElementById('email').value.trim().toLowerCase();
+            const age = document.getElementById('age').value;
+            const gender = document.getElementById('gender').value;
+
+            try {
+                if (isSignUp) {
+                    // Check if username taken
+                    const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', username);
+                    const userDoc = await getDoc(userDocRef);
+                    if (userDoc.exists()) return showMessage("Username already taken!");
+
+                    // Simple duplicate email check
+                    const emailQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'users'), where("email", "==", email));
+                    const emailSnap = await getDocs(emailQuery);
+                    if (!emailSnap.empty) return showMessage("Email already in use!");
+                    
+                    const profile = { 
+                        username, 
+                        email, 
+                        password, // Note: In a real production app, passwords must be hashed
+                        age, 
+                        gender, 
+                        uid: auth.currentUser.uid 
+                    };
+                    await setDoc(userDocRef, profile);
+                    localStorage.setItem('chat_profile', JSON.stringify(profile));
+                    window.location.href = 'index.html';
+                } else {
+                    // Log In Logic
+                    let profile = null;
+                    
+                    // Allow login by username or email
+                    const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', username);
+                    const userDoc = await getDoc(userDocRef);
+                    
+                    if (userDoc.exists()) {
+                        profile = userDoc.data();
+                    } else {
+                        // Check if the "username" input was actually an email
+                        const emailQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'users'), where("email", "==", username));
+                        const emailSnap = await getDocs(emailQuery);
+                        if (!emailSnap.empty) {
+                            profile = emailSnap.docs[0].data();
+                        }
+                    }
+
+                    if (!profile) return showMessage("Account not found!");
+                    if (profile.password !== password) return showMessage("Incorrect password!");
+                    
+                    localStorage.setItem('chat_profile', JSON.stringify(profile));
+                    window.location.href = 'index.html';
+                }
+            } catch (err) {
+                console.error(err);
+                showMessage("Database error. Please try again.");
+            }
+        };
+
+        // Populate Ages 1-100
+        const ageSelect = document.getElementById('age');
+        for(let i = 1; i <= 100; i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = i;
+            if(i === 18) opt.selected = true;
+            ageSelect.appendChild(opt);
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+        }
+        .login-card {
+            background: #1e293b;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .input-field {
+            width: 100%;
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: white;
+            outline: none;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        .input-field:focus { border-color: #7c3aed; box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1); }
+        .btn-gradient {
+            background: linear-gradient(180deg, #9061f9 0%, #6d28d9 100%);
+            border-bottom: 4px solid #4c1d95;
+            transition: all 0.1s;
+        }
+        .btn-gradient:active { transform: translateY(2px); border-bottom-width: 0; }
+        label {
+            display: block;
+            font-size: 0.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #94a3b8;
+            margin-bottom: 0.4rem;
+            margin-left: 0.25rem;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <div class="text-center mb-6">
+            <h1 id="auth-title" class="text-3xl font-black tracking-tighter text-white">SIGN UP</h1>
+            <p id="auth-desc" class="text-slate-400 text-xs mt-1">Create your profile to join</p>
+        </div>
+
+        <div id="message-box" class="hidden"></div>
+
+        <form id="auth-form" class="space-y-4">
+            <div>
+                <label>Username or Email</label>
+                <input type="text" id="username" required maxlength="25" class="input-field" placeholder="CoolUser123">
+            </div>
+
+            <div>
+                <label>Password</label>
+                <input type="password" id="password" required minlength="4" class="input-field" placeholder="••••••••">
+            </div>
+
+            <div id="email-group">
+                <label>Email Address (Confirm for Signup)</label>
+                <input type="email" id="email" class="input-field" placeholder="email@example.com">
+            </div>
+
+            <div id="signup-fields" class="grid grid-cols-2 gap-4">
+                <div>
+                    <label>Age</label>
+                    <select id="age" class="input-field"></select>
+                </div>
+                <div>
+                    <label>Gender</label>
+                    <select id="gender" class="input-field">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Table">Table</option>
+                        <option value="Egg">Egg</option>
+                        <option value="Microwave">Microwave</option>
+                        <option value="Attack Helicopter">Attack Helicopter</option>
+                        <option value="Potato">Potato</option>
+                        <option value="Toaster">Toaster</option>
+                        <option value="Cactus">Cactus</option>
+                        <option value="Alien">Alien</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" id="submit-btn" class="w-full btn-gradient py-3.5 rounded-xl font-bold text-white shadow-lg uppercase tracking-widest text-xs mt-2">
+                Create Account
+            </button>
+        </form>
+
+        <p class="text-center mt-6">
+            <button onclick="toggleAuthMode()" id="toggle-link" class="text-[10px] font-bold text-purple-400 hover:text-purple-300 uppercase tracking-widest transition-colors">
+                Already have an account? Log In
+            </button>
+        </p>
+    </div>
+
+</body>
+</html>
