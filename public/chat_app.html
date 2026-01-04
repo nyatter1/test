@@ -28,112 +28,164 @@
         .rank-dev { background: #a855f7; color: #fff; box-shadow: 0 0 10px rgba(168, 85, 247, 0.3); border: 1px solid #d8b4fe; }
         .rank-helper { background: #10b981; color: #fff; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); border: 1px solid #6ee7b7; }
         .rank-vip { background: #eab308; color: #000; border: 1px solid #fde047; }
+        .rank-owner { background: #ef4444; color: #fff; border: 1px solid #f87171; }
 
-        #profile-overlay {
-            transition: all 0.2s ease-out;
-            opacity: 0;
-            pointer-events: none;
-            transform: scale(0.98);
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
         }
-        #profile-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-            transform: scale(1);
-        }
+        .modal-overlay.active { display: flex; }
 
         .pfp-main { border: 1px solid rgba(255, 255, 255, 0.1); object-fit: cover; background: #1c1c1f; }
-        .profile-banner { background-size: cover; background-position: center; }
+        
+        .like-btn { transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .like-btn.unliked { color: #ef4444; background: #18181b; }
+        .like-btn.liked { color: #000000; background: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
 
-        .like-btn {
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .like-btn:active {
-            transform: scale(0.9);
-        }
-        .heart-pop {
-            animation: heartPop 0.4s ease-out;
-        }
-        @keyframes heartPop {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.3); color: #ef4444; }
-            100% { transform: scale(1); }
-        }
+        .info-card { transition: transform 0.2s ease; }
+        .info-card:hover { transform: translateY(-2px); }
     </style>
 </head>
-<body class="h-screen flex p-4 gap-4 relative">
+<body class="h-screen flex p-4 gap-4 relative overflow-hidden">
 
-    <div id="main-content-wrapper" class="flex flex-1 gap-4 w-full h-full">
-        <!-- Sidebar -->
-        <aside class="w-80 glass rounded-3xl flex flex-col overflow-hidden shrink-0 hidden md:flex">
-            <div class="p-6 border-b border-zinc-800">
-                <h2 class="font-800 text-xl tracking-tighter text-indigo-400 uppercase italic mb-4">LOUNGE</h2>
-                <div class="relative">
-                    <input type="text" id="user-search" oninput="filterSidebar()" 
-                        class="w-full bg-zinc-900 border border-white/5 rounded-xl px-4 py-2 text-xs font-bold text-white placeholder:text-zinc-600 outline-none focus:border-indigo-500/50"
-                        placeholder="Search users...">
-                </div>
+    <!-- Left Sidebar (Users) -->
+    <aside class="w-72 glass rounded-3xl flex flex-col overflow-hidden shrink-0 hidden lg:flex">
+        <div class="p-6 border-b border-zinc-800">
+            <h2 class="font-800 text-xl tracking-tighter text-indigo-400 uppercase italic mb-4">LOUNGE</h2>
+            <input type="text" id="user-search" oninput="filterSidebar()" 
+                class="w-full bg-zinc-900 border border-white/5 rounded-xl px-4 py-2 text-xs font-bold text-white placeholder:text-zinc-600 outline-none focus:border-indigo-500/50"
+                placeholder="Search users...">
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-6">
+            <div>
+                <h3 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-3 px-2">Online</h3>
+                <div id="online-list" class="space-y-1"></div>
             </div>
+            <div>
+                <h3 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-3 px-2">Offline</h3>
+                <div id="offline-list" class="space-y-1 opacity-50 grayscale"></div>
+            </div>
+        </div>
+        <div class="p-4 border-t border-zinc-800 bg-zinc-900/30 flex items-center justify-between">
+            <div class="flex items-center gap-2 cursor-pointer group" onclick="openProfile(profile.username)">
+                <img src="default.png" id="my-pfp" class="w-8 h-8 rounded-lg pfp-main">
+                <span class="text-xs font-bold group-hover:text-indigo-400 transition-colors" id="my-username-display">User</span>
+            </div>
+            <button onclick="logout()" class="text-[10px] font-black text-zinc-600 hover:text-red-400 uppercase tracking-widest transition-colors">Exit</button>
+        </div>
+    </aside>
+
+    <!-- Center Chat -->
+    <main class="flex-1 glass rounded-3xl flex flex-col overflow-hidden relative">
+        <div class="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/20 backdrop-blur-md">
+            <div class="flex items-center gap-2 px-2">
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span class="text-[10px] font-black uppercase tracking-widest text-zinc-500">Public Lounge</span>
+            </div>
+        </div>
+        <div id="message-container" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
+        <div class="p-6 pt-0">
+            <form id="chat-form" class="flex gap-3 bg-zinc-900/50 p-2 rounded-2xl border border-zinc-800">
+                <input type="text" id="msg-input" autocomplete="off" class="flex-1 bg-transparent border-none outline-none px-4 py-3 text-sm text-white" placeholder="Say something...">
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white w-12 h-12 rounded-xl flex items-center justify-center transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <!-- Right Sidebar (Hub) -->
+    <aside class="w-64 flex flex-col gap-4 shrink-0">
+        <div class="glass rounded-3xl p-6 flex-1 flex flex-col gap-3">
+            <h3 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-2 px-2">Information Hub</h3>
             
-            <div class="flex-1 overflow-y-auto p-4 space-y-6">
-                <div>
-                    <h3 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-3 px-2">Online</h3>
-                    <div id="online-list" class="space-y-1"></div>
+            <button onclick="openNews()" class="info-card w-full bg-zinc-900/50 border border-white/5 p-4 rounded-2xl flex items-center gap-4 hover:bg-indigo-500/10 hover:border-indigo-500/30 group">
+                <div class="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
                 </div>
-                <div>
-                    <h3 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-3 px-2">Offline</h3>
-                    <div id="offline-list" class="space-y-1 opacity-50 grayscale"></div>
+                <div class="text-left">
+                    <p class="text-xs font-800 text-white uppercase italic">News</p>
+                    <p class="text-[9px] font-bold text-zinc-500">Latest updates</p>
                 </div>
-            </div>
+            </button>
 
-            <div class="p-4 border-t border-zinc-800 bg-zinc-900/30 flex items-center justify-between">
-                <div class="flex items-center gap-2 cursor-pointer group" onclick="openProfile(profile.username)">
-                    <img src="default.png" id="my-pfp" class="w-8 h-8 rounded-lg pfp-main group-hover:opacity-80 transition-opacity">
-                    <span class="text-xs font-bold group-hover:text-indigo-400 transition-colors" id="my-username-display">User</span>
+            <button onclick="openStaffList()" class="info-card w-full bg-zinc-900/50 border border-white/5 p-4 rounded-2xl flex items-center gap-4 hover:bg-emerald-500/10 hover:border-emerald-500/30 group">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                 </div>
-                <button onclick="logout()" class="text-[10px] font-black text-zinc-600 hover:text-red-400 uppercase tracking-widest transition-colors">Exit</button>
-            </div>
-        </aside>
-
-        <!-- Main Chat -->
-        <main class="flex-1 glass rounded-3xl flex flex-col overflow-hidden relative">
-            <div class="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/20 backdrop-blur-md">
-                <div class="flex items-center gap-2 px-2">
-                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span class="text-[10px] font-black uppercase tracking-widest text-zinc-500">Public Lounge</span>
+                <div class="text-left">
+                    <p class="text-xs font-800 text-white uppercase italic">Staff</p>
+                    <p class="text-[9px] font-bold text-zinc-500">Meet the team</p>
                 </div>
-            </div>
+            </button>
 
-            <div id="message-container" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
-            
-            <div class="p-6 pt-0">
-                <form id="chat-form" class="flex gap-3 bg-zinc-900/50 p-2 rounded-2xl border border-zinc-800">
-                    <input type="text" id="msg-input" autocomplete="off" class="flex-1 bg-transparent border-none outline-none px-4 py-3 text-sm text-white" placeholder="Say something to everyone...">
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white w-12 h-12 rounded-xl flex items-center justify-center transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    </button>
-                </form>
+            <button onclick="openRules()" class="info-card w-full bg-zinc-900/50 border border-white/5 p-4 rounded-2xl flex items-center gap-4 hover:bg-amber-500/10 hover:border-amber-500/30 group">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                </div>
+                <div class="text-left">
+                    <p class="text-xs font-800 text-white uppercase italic">Rules</p>
+                    <p class="text-[9px] font-bold text-zinc-500">Legal & Conduct</p>
+                </div>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Modals -->
+    <!-- Rules Modal -->
+    <div id="rules-modal" class="modal-overlay">
+        <div class="w-full max-w-2xl bg-zinc-900 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
+            <div class="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
+                <div class="flex gap-4">
+                    <button id="btn-member-rules" onclick="showRules('member')" class="text-[10px] font-black uppercase tracking-widest text-indigo-400 border-b-2 border-indigo-400 pb-1">Member Rules</button>
+                    <button id="btn-staff-rules" onclick="showRules('staff')" class="text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-white pb-1 transition-colors">Staff Rules</button>
+                </div>
+                <button onclick="closeModal('rules-modal')" class="text-zinc-500 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
             </div>
-        </main>
+            <div id="rules-content" class="p-8 max-h-[60vh] overflow-y-auto space-y-4 text-sm text-zinc-400 leading-relaxed">
+                <!-- Content injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff List Modal -->
+    <div id="staff-modal" class="modal-overlay">
+        <div class="w-full max-w-lg bg-zinc-900 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
+            <div class="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
+                <h3 class="text-xs font-black uppercase tracking-widest text-emerald-400 italic">Lounge Staff Directory</h3>
+                <button onclick="closeModal('staff-modal')" class="text-zinc-500 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div id="staff-roles-container" class="p-6 max-h-[70vh] overflow-y-auto space-y-3">
+                <!-- Roles injected by JS -->
+            </div>
+        </div>
     </div>
 
     <!-- Profile View Overlay -->
-    <div id="profile-overlay" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div id="profile-overlay" class="modal-overlay">
         <div class="w-full max-w-sm bg-zinc-900 rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl">
-            <div id="p-banner" class="h-32 bg-indigo-600 w-full profile-banner"></div>
+            <div id="p-banner" class="h-32 bg-indigo-600 w-full"></div>
             <div class="px-6 pb-8 text-center -mt-12">
                 <div class="relative inline-block mb-4">
                     <div class="p-1 bg-zinc-900 rounded-3xl">
                         <img id="p-pfp" src="default.png" class="w-24 h-24 rounded-[1.8rem] border-4 border-zinc-900 pfp-main">
                     </div>
-                    <!-- Like Button -->
-                    <button id="p-like-btn" class="like-btn absolute -right-2 bottom-0 bg-zinc-800 border border-white/10 p-2.5 rounded-2xl text-pink-500 shadow-xl hover:bg-zinc-700">
+                    <button id="p-like-btn" class="like-btn unliked absolute -right-2 bottom-0 border border-white/10 p-2.5 rounded-2xl shadow-xl">
                         <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                     </button>
                 </div>
-
                 <h3 id="p-username" class="text-2xl font-800 tracking-tighter text-white mb-1 uppercase italic">Username</h3>
                 <div id="p-ranks" class="mb-4"></div>
-                
                 <div class="grid grid-cols-3 gap-2 mb-6">
                     <div class="bg-zinc-800/50 p-3 rounded-2xl border border-white/5">
                         <p class="text-[8px] font-black text-zinc-500 uppercase mb-1">Details</p>
@@ -148,10 +200,7 @@
                         <p id="p-lastseen" class="text-xs font-bold text-green-500">Active</p>
                     </div>
                 </div>
-
-                <div class="space-y-3">
-                    <button onclick="closeProfile()" class="w-full bg-zinc-800 p-4 rounded-2xl text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em] hover:bg-zinc-700 transition-all">Close Profile</button>
-                </div>
+                <button onclick="closeModal('profile-overlay')" class="w-full bg-zinc-800 p-4 rounded-2xl text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em] hover:bg-zinc-700 transition-all">Close</button>
             </div>
         </div>
     </div>
@@ -161,32 +210,22 @@
         const profile = JSON.parse(localStorage.getItem('chat_profile')) || { username: 'Guest' + Math.floor(Math.random()*1000) };
         if (!localStorage.getItem('chat_profile')) window.location.href = '/';
 
+        let profileLikes = JSON.parse(localStorage.getItem('lounge_likes_map') || '{}');
+        let myLikes = JSON.parse(localStorage.getItem(`lounge_my_likes_${profile.username}`) || '[]');
         let onlineUsers = [];
         let offlineUsers = [];
-        // Store likes in a local object that syncs via socket
-        let profileLikes = JSON.parse(localStorage.getItem('lounge_likes_map') || '{}');
-        const userMetadata = JSON.parse(localStorage.getItem('lounge_user_metadata') || '{}');
 
-        // Force all profile pictures to default.png
-        const myMeta = {
-            username: profile.username,
-            age: profile.age || 19,
-            gender: profile.gender || 'Male',
-            pfp: `default.png`,
-            banner: `https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=500&auto=format&fit=crop`,
-            lastSeen: Date.now()
-        };
-        userMetadata[profile.username] = myMeta;
-        localStorage.setItem('lounge_user_metadata', JSON.stringify(userMetadata));
+        // Staff Data Mapping (Static for UI, logic checks user registry)
+        const STAFF_ROLES = ["Developer", "CEO", "Site-Helper", "Owner", "Co-Owner", "Super Admin", "Admin", "Mod", "Trial-mod"];
 
         document.getElementById('my-username-display').innerText = profile.username;
-        document.getElementById('my-pfp').src = 'default.png';
 
         const getRankHtml = (name) => {
             if (!name) return '';
             const n = name.toLowerCase();
-            if (n === 'dev') return '<span class="rank-badge rank-dev">| DEV |</span>';
-            if (n === 'fluffy') return '<span class="rank-badge rank-helper">| HELPER |</span>';
+            if (n === 'dev' || n === 'developer') return '<span class="rank-badge rank-dev">| DEV |</span>';
+            if (n === 'fluffy' || n === 'helper') return '<span class="rank-badge rank-helper">| HELPER |</span>';
+            if (n === 'owner') return '<span class="rank-badge rank-owner">| OWNER |</span>';
             return '<span class="rank-badge rank-vip">| VIP |</span>';
         };
 
@@ -219,24 +258,6 @@
             container.scrollTop = container.scrollHeight;
         });
 
-        // --- LIKE SYSTEM ---
-        // We use the socket to broadcast likes since we don't have a dedicated backend DB
-        socket.on('profileLiked', (data) => {
-            profileLikes[data.target] = (profileLikes[data.target] || 0) + 1;
-            localStorage.setItem('lounge_likes_map', JSON.stringify(profileLikes));
-            
-            // If the profile is currently open, update the count live
-            const openUser = document.getElementById('p-username').innerText;
-            if (openUser === data.target) {
-                const countEl = document.getElementById('p-likes');
-                countEl.innerText = profileLikes[data.target];
-                countEl.classList.remove('heart-pop');
-                void countEl.offsetWidth; // Trigger reflow
-                countEl.classList.add('heart-pop');
-            }
-        });
-
-        // --- SIDEBAR LOGIC ---
         socket.on('userListUpdate', (users) => {
             onlineUsers = users;
             const registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
@@ -246,6 +267,142 @@
             filterSidebar();
         });
 
+        // --- HUB FUNCTIONS ---
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        function openRules() {
+            document.getElementById('rules-modal').classList.add('active');
+            showRules('member');
+        }
+
+        function showRules(type) {
+            const content = document.getElementById('rules-content');
+            const mBtn = document.getElementById('btn-member-rules');
+            const sBtn = document.getElementById('btn-staff-rules');
+
+            if(type === 'member') {
+                mBtn.className = "text-[10px] font-black uppercase tracking-widest text-indigo-400 border-b-2 border-indigo-400 pb-1";
+                sBtn.className = "text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-white pb-1 transition-colors";
+                content.innerHTML = `
+                    <div class="space-y-4">
+                        <p class="font-bold text-white uppercase italic">1. Be Respectful</p>
+                        <p>No harassment, hate speech, or toxic behavior towards other members.</p>
+                        <p class="font-bold text-white uppercase italic">2. No Spam</p>
+                        <p>Avoid flooding the chat with excessive messages, emojis, or links.</p>
+                        <p class="font-bold text-white uppercase italic">3. English Only</p>
+                        <p>To ensure safety and moderation, please speak English in the public lounge.</p>
+                        <p class="font-bold text-white uppercase italic">4. Safety First</p>
+                        <p>Do not share personal info or malicious links. Report any suspicious activity.</p>
+                    </div>
+                `;
+            } else {
+                sBtn.className = "text-[10px] font-black uppercase tracking-widest text-indigo-400 border-b-2 border-indigo-400 pb-1";
+                mBtn.className = "text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-white pb-1 transition-colors";
+                content.innerHTML = `
+                    <div class="space-y-4">
+                        <p class="font-bold text-white uppercase italic">1. Integrity</p>
+                        <p>Never abuse your permissions for personal gain or revenge.</p>
+                        <p class="font-bold text-white uppercase italic">2. Neutrality</p>
+                        <p>Handle disputes impartially. All members deserve a fair hearing.</p>
+                        <p class="font-bold text-white uppercase italic">3. Confidentiality</p>
+                        <p>Internal staff discussions must never be leaked to general members.</p>
+                        <p class="font-bold text-white uppercase italic">4. Activity</p>
+                        <p>Remain active and engaged with the community to keep your status.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function openStaffList() {
+            const container = document.getElementById('staff-roles-container');
+            container.innerHTML = '';
+            const registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
+            
+            // Mock assignment for demonstration:
+            // In a real app, you'd store ranks in the DB. Here we check username matches
+            const getRankAssignment = (role) => {
+                const assigned = registry.filter(u => {
+                    const r = role.toLowerCase().replace(' ', '');
+                    const uname = u.username.toLowerCase();
+                    // Basic logic for demo: usernames like "DevUser" or matches
+                    return uname.includes(r);
+                });
+                return assigned.length > 0 ? assigned : null;
+            };
+
+            STAFF_ROLES.forEach(role => {
+                const users = getRankAssignment(role);
+                const roleDiv = document.createElement('div');
+                roleDiv.className = "bg-zinc-800/40 p-4 rounded-2xl border border-white/5";
+                
+                let usersHtml = '';
+                if(users) {
+                    usersHtml = users.map(u => `
+                        <div onclick="openProfile('${u.username}'); closeModal('staff-modal')" class="flex items-center gap-2 mt-2 cursor-pointer group">
+                            <img src="default.png" class="w-6 h-6 rounded-lg pfp-main">
+                            <span class="text-xs font-bold text-zinc-200 group-hover:text-indigo-400 transition-colors">${u.username}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    usersHtml = `<p class="text-[9px] font-bold text-zinc-600 mt-2 uppercase">Yet to come</p>`;
+                }
+
+                roleDiv.innerHTML = `
+                    <p class="text-[10px] font-black text-zinc-500 uppercase tracking-widest">${role}</p>
+                    <div class="flex flex-col gap-1">${usersHtml}</div>
+                `;
+                container.appendChild(roleDiv);
+            });
+
+            document.getElementById('staff-modal').classList.add('active');
+        }
+
+        function openNews() {
+            // Simplified for brevity
+            alert("Latest News: V2.5 Released! \n- New Information Hub added.\n- Improved Profile Like system.\n- Performance optimizations.");
+        }
+
+        // --- CORE UI LOGIC ---
+        function openProfile(username) {
+            currentViewedUser = username;
+            document.getElementById('p-username').innerText = username;
+            document.getElementById('p-ranks').innerHTML = getRankHtml(username);
+            document.getElementById('p-pfp').src = 'default.png';
+            document.getElementById('p-likes').innerText = profileLikes[username] || 0;
+            updateLikeButtonUI();
+            
+            const isOnline = onlineUsers.some(u => u.username === username);
+            document.getElementById('p-lastseen').innerText = isOnline ? 'Active' : 'Away';
+            document.getElementById('p-lastseen').className = isOnline ? 'text-xs font-bold text-green-500' : 'text-xs font-bold text-zinc-500';
+
+            document.getElementById('profile-overlay').classList.add('active');
+        }
+
+        function updateLikeButtonUI() {
+            const btn = document.getElementById('p-like-btn');
+            if (myLikes.includes(currentViewedUser)) {
+                btn.className = "like-btn liked absolute -right-2 bottom-0 border border-white/10 p-2.5 rounded-2xl shadow-xl";
+            } else {
+                btn.className = "like-btn unliked absolute -right-2 bottom-0 border border-white/10 p-2.5 rounded-2xl shadow-xl";
+            }
+        }
+
+        document.getElementById('p-like-btn').onclick = () => {
+            if (!currentViewedUser) return;
+            const hasLiked = myLikes.includes(currentViewedUser);
+            if (hasLiked) {
+                myLikes = myLikes.filter(u => u !== currentViewedUser);
+                profileLikes[currentViewedUser] = Math.max(0, (profileLikes[currentViewedUser] || 0) - 1);
+            } else {
+                myLikes.push(currentViewedUser);
+                profileLikes[currentViewedUser] = (profileLikes[currentViewedUser] || 0) + 1;
+            }
+            localStorage.setItem(`lounge_my_likes_${profile.username}`, JSON.stringify(myLikes));
+            localStorage.setItem('lounge_likes_map', JSON.stringify(profileLikes));
+            document.getElementById('p-likes').innerText = profileLikes[currentViewedUser];
+            updateLikeButtonUI();
+        };
+
         function filterSidebar() {
             const q = document.getElementById('user-search').value.toLowerCase();
             const filterFn = u => u.username.toLowerCase().includes(q);
@@ -254,62 +411,18 @@
         }
 
         function renderList(id, users, isOnline) {
-            document.getElementById(id).innerHTML = users.map(u => {
-                return `
+            document.getElementById(id).innerHTML = users.map(u => `
                 <div class="flex items-center justify-between p-2.5 rounded-2xl hover:bg-white/5 transition-all group cursor-pointer" onclick="openProfile('${u.username}')">
                     <div class="flex items-center gap-3 min-w-0">
-                        <img src="default.png" class="w-9 h-9 rounded-xl shrink-0 pfp-main group-hover:opacity-80 transition-opacity">
+                        <img src="default.png" class="w-8 h-8 rounded-xl shrink-0 pfp-main">
                         <div class="truncate">
                             <div class="flex items-center truncate">
-                                <span class="text-xs font-bold text-zinc-200 truncate group-hover:text-indigo-400 transition-colors">${u.username}</span>
+                                <span class="text-xs font-bold text-zinc-200 truncate group-hover:text-indigo-400">${u.username}</span>
                                 ${getRankHtml(u.username)}
                             </div>
-                            <div class="text-[8px] font-black text-zinc-600 uppercase tracking-tighter">${isOnline ? 'Active' : 'Offline'}</div>
                         </div>
                     </div>
-                </div>`;
-            }).join('');
-        }
-
-        // --- PROFILE OVERLAY ---
-        let currentViewedUser = null;
-
-        function openProfile(username) {
-            currentViewedUser = username;
-            const meta = userMetadata[username] || { age: 18, gender: '?' };
-            
-            document.getElementById('p-username').innerText = username;
-            document.getElementById('p-ranks').innerHTML = getRankHtml(username);
-            document.getElementById('p-pfp').src = 'default.png';
-            document.getElementById('p-details').innerText = `${meta.age || '18'} / ${meta.gender || '?'}`;
-            document.getElementById('p-likes').innerText = profileLikes[username] || 0;
-            
-            const isOnline = onlineUsers.some(u => u.username === username);
-            if (isOnline) {
-                document.getElementById('p-lastseen').innerText = 'Active Now';
-                document.getElementById('p-lastseen').className = 'text-xs font-bold text-green-500';
-            } else {
-                document.getElementById('p-lastseen').innerText = 'Away';
-                document.getElementById('p-lastseen').className = 'text-xs font-bold text-zinc-500';
-            }
-
-            document.getElementById('profile-overlay').classList.add('active');
-        }
-
-        document.getElementById('p-like-btn').onclick = () => {
-            if (!currentViewedUser) return;
-            // In a real app, you'd check if the user already liked this person
-            socket.emit('likeUser', { target: currentViewedUser, from: profile.username });
-            
-            // Local optimistic update
-            profileLikes[currentViewedUser] = (profileLikes[currentViewedUser] || 0) + 1;
-            document.getElementById('p-likes').innerText = profileLikes[currentViewedUser];
-            localStorage.setItem('lounge_likes_map', JSON.stringify(profileLikes));
-        };
-
-        function closeProfile() { 
-            currentViewedUser = null;
-            document.getElementById('profile-overlay').classList.remove('active'); 
+                </div>`).join('');
         }
 
         document.getElementById('chat-form').onsubmit = (e) => {
@@ -321,20 +434,7 @@
             }
         };
 
-        function logout() { 
-            localStorage.removeItem('chat_profile'); 
-            window.location.href = '/'; 
-        }
-
-        // Handle incoming likes from others
-        socket.on('userLiked', (data) => {
-            // Re-sync local likes map with data from server or broadcast
-            profileLikes[data.target] = data.newTotal;
-            localStorage.setItem('lounge_likes_map', JSON.stringify(profileLikes));
-            if(currentViewedUser === data.target) {
-                document.getElementById('p-likes').innerText = data.newTotal;
-            }
-        });
+        function logout() { localStorage.removeItem('chat_profile'); window.location.href = '/'; }
     </script>
 </body>
 </html>
