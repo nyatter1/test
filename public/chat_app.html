@@ -14,18 +14,36 @@
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
         
+        /* Rank Text Art Badges */
         .rank-badge {
-            font-size: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 9px;
             font-weight: 900;
-            padding: 1px 4px;
+            padding: 2px 6px;
             border-radius: 4px;
-            text-transform: uppercase;
-            margin-left: 4px;
+            margin-left: 6px;
             display: inline-block;
             vertical-align: middle;
+            letter-spacing: -0.5px;
         }
-        .rank-owner { background: #ef4444; color: white; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
-        .rank-dev { background: #0ea5e9; color: white; box-shadow: 0 0 8px rgba(14, 165, 233, 0.4); }
+        .rank-owner { 
+            background: #ef4444; 
+            color: #fff; 
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+            border: 1px solid #fca5a5;
+        }
+        .rank-dev { 
+            background: #a855f7; 
+            color: #fff; 
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+            border: 1px solid #d8b4fe;
+        }
+        .rank-vip { 
+            background: #eab308; 
+            color: #000; 
+            box-shadow: 0 0 10px rgba(234, 179, 8, 0.2);
+            border: 1px solid #fde047;
+        }
 
         #profile-overlay, #dm-modal, #inbox-overlay, #private-chat-overlay {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -42,12 +60,11 @@
         .main-blur { filter: blur(15px); pointer-events: none; transition: filter 0.3s ease; }
 
         .notification-dot {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             background-color: #ef4444;
             border-radius: 50%;
-            box-shadow: 0 0 10px #ef4444;
-            flex-shrink: 0;
+            box-shadow: 0 0 8px #ef4444;
         }
         
         .msg-time { font-size: 9px; opacity: 0.4; font-weight: 600; }
@@ -216,9 +233,16 @@
         
         const getRankHtml = (username) => {
             const userLower = username.toLowerCase();
-            if (userLower === 'luna_midnight' || userLower === 'owner') return '<span class="rank-badge rank-owner">Owner</span>';
-            if (userLower === 'dev' || userLower === 'system') return '<span class="rank-badge rank-dev">Dev</span>';
-            return '';
+            // Owner rank
+            if (userLower === 'luna_midnight' || userLower === 'owner') {
+                return '<span class="rank-badge rank-owner">| OWNER |</span>';
+            }
+            // Developer rank
+            if (userLower === 'dev' || userLower === 'system') {
+                return '<span class="rank-badge rank-dev">| DEVELOPER |</span>';
+            }
+            // Default VIP rank for everyone else
+            return '<span class="rank-badge rank-vip">| VIP |</span>';
         };
 
         socket.emit('join', profile);
@@ -288,9 +312,11 @@
             const otherUser = sender === profile.username ? target : sender;
 
             if (!conversations[otherUser]) conversations[otherUser] = [];
-            conversations[otherUser].push({ ...data, time: formatTime() });
             
-            // Notification logic for receiver
+            const messageObj = { ...data, time: formatTime() };
+            conversations[otherUser].push(messageObj);
+            
+            // Notification logic for receiver (if I am NOT the sender)
             if (sender !== profile.username && dmTarget !== otherUser) {
                 unreadFrom.add(otherUser);
                 document.getElementById('global-notif-dot').classList.remove('hidden');
@@ -300,7 +326,7 @@
             
             // UI Update: Only append if currently viewing THIS conversation
             if (dmTarget === otherUser && document.getElementById('private-chat-overlay').classList.contains('active')) {
-                appendPrivateMessage(conversations[otherUser][conversations[otherUser].length - 1]);
+                appendPrivateMessage(messageObj);
             }
             
             updateInboxUI();
@@ -309,10 +335,9 @@
         function updateInboxUI() {
             const list = document.getElementById('inbox-list');
             const userKeys = Object.keys(conversations).sort((a, b) => {
-                // Priority 1: Unread
                 if (unreadFrom.has(a) && !unreadFrom.has(b)) return -1;
                 if (!unreadFrom.has(a) && unreadFrom.has(b)) return 1;
-                return 0; // Maintain recent (chronological storage)
+                return 0;
             });
 
             if (userKeys.length === 0) {
@@ -325,7 +350,7 @@
                 const lastMsg = history[history.length - 1];
                 return `
                     <div onclick="openPrivateChat('${user}')" class="flex items-center gap-4 p-4 rounded-[2rem] bg-zinc-800/40 border border-white/5 hover:bg-indigo-600/10 transition-all cursor-pointer group relative">
-                        <div class="relative flex-shrink-0">
+                        <div class="relative flex flex-shrink-0 items-center justify-center">
                             <img src="default.png" class="w-12 h-12 rounded-2xl object-cover">
                             ${unreadFrom.has(user) ? '<div class="notification-dot absolute -top-1 -right-1 border-2 border-zinc-900"></div>' : ''}
                         </div>
