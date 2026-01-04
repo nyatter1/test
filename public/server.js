@@ -10,19 +10,18 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // 1. Serve static files from the 'public' directory
-// This ensures that when your HTML asks for "default.png" or other assets, 
-// the server knows to look inside the public folder.
+// This handles all assets, CSS, and JS files located in /public
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Middleware to parse JSON bodies
 app.use(express.json());
 
-// 2. Fix the path to point inside the 'public' folder
+// 2. Main route - Pointing to the primary chat file in the public folder
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'chat_app.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Route for the login page if needed specifically
+// Route for the login page specifically
 app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
@@ -40,7 +39,7 @@ app.listen(PORT, () => {
     -------------------------------------------
     WHISPER SERVER ACTIVE
     URL: http://localhost:${PORT}
-    ROOT FILE: public/chat_app.html
+    SERVED FROM: /public folder
     -------------------------------------------
     `);
 });
