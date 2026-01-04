@@ -74,7 +74,7 @@
         </div>
         <div class="p-4 border-t border-zinc-800 bg-zinc-900/30 flex items-center justify-between">
             <div class="flex items-center gap-2 cursor-pointer group" onclick="openProfile(profile.username)">
-                <img src="default.png" id="my-pfp" class="w-8 h-8 rounded-lg pfp-main">
+                <div id="my-pfp-placeholder" class="w-8 h-8 rounded-lg pfp-main bg-zinc-800 flex items-center justify-center text-[10px] font-bold">ME</div>
                 <span class="text-xs font-bold group-hover:text-indigo-400 transition-colors" id="my-username-display">User</span>
             </div>
             <button onclick="logout()" class="text-[10px] font-black text-zinc-600 hover:text-red-400 uppercase tracking-widest transition-colors">Exit</button>
@@ -173,7 +173,7 @@
             <div class="px-6 pb-8 text-center -mt-12">
                 <div class="relative inline-block mb-4">
                     <div class="p-1 bg-zinc-900 rounded-3xl">
-                        <img id="p-pfp" src="default.png" class="w-24 h-24 rounded-[1.8rem] border-4 border-zinc-900 pfp-main">
+                        <div id="p-pfp-placeholder" class="w-24 h-24 rounded-[1.8rem] border-4 border-zinc-900 bg-zinc-800 flex items-center justify-center text-2xl font-black">??</div>
                     </div>
                     <button id="p-like-btn" class="like-btn unliked absolute -right-2 bottom-0 border border-white/10 p-2.5 rounded-2xl shadow-xl">
                         <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
@@ -211,18 +211,30 @@
         let offlineUsers = [];
         let currentViewedUser = null;
 
-        // Staff Rank Definitions
-        const STAFF_ROLES = ["Developer", "CEO", "Site-Helper", "Owner", "Co-Owner", "Super Admin", "Admin", "Mod", "Trial-mod"];
+        // Staff Rank Definitions and keywords
+        const STAFF_CONFIG = [
+            { label: 'Developer', keywords: ['dev'], class: 'rank-dev' },
+            { label: 'Owner', keywords: ['owner', 'ceo', 'co-owner'], class: 'rank-owner' },
+            { label: 'Helper', keywords: ['helper', 'site-helper'], class: 'rank-helper' },
+            { label: 'Staff', keywords: ['admin', 'mod', 'trial-mod'], class: 'rank-dev' }
+        ];
 
         document.getElementById('my-username-display').innerText = profile.username;
+        document.getElementById('my-pfp-placeholder').innerText = profile.username.substring(0, 2).toUpperCase();
 
-        // Helper to check for staff ranks based on username or keywords
-        const getRankHtml = (uname) => {
-            if (!uname) return '';
+        // Helper to check for staff ranks based on username
+        const getRankInfo = (uname) => {
+            if (!uname) return null;
             const n = uname.toLowerCase();
-            if (n.includes('dev')) return '<span class="rank-badge rank-dev">| DEV |</span>';
-            if (n.includes('owner')) return '<span class="rank-badge rank-owner">| OWNER |</span>';
-            if (n.includes('helper')) return '<span class="rank-badge rank-helper">| HELPER |</span>';
+            for (const config of STAFF_CONFIG) {
+                if (config.keywords.some(k => n.includes(k))) return config;
+            }
+            return null;
+        };
+
+        const getRankHtml = (uname) => {
+            const rank = getRankInfo(uname);
+            if (rank) return `<span class="rank-badge ${rank.class}">| ${rank.label} |</span>`;
             return '<span class="rank-badge rank-vip">| MEMBER |</span>';
         };
 
@@ -240,7 +252,7 @@
                 div.className = `flex justify-start animate-in slide-in-from-left-2 duration-200`;
                 div.innerHTML = `
                     <div class="flex gap-3 max-w-[90%] group">
-                        <img onclick="openProfile('${data.username}')" src="default.png" class="w-9 h-9 rounded-xl shrink-0 pfp-main cursor-pointer hover:opacity-80 transition-opacity">
+                        <div onclick="openProfile('${data.username}')" class="w-9 h-9 rounded-xl shrink-0 pfp-main cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-center text-[10px] font-bold bg-zinc-800 border border-white/5">${data.username.substring(0, 2).toUpperCase()}</div>
                         <div class="bg-zinc-800/50 p-3.5 rounded-2xl border border-white/5">
                             <div class="flex items-center gap-2 mb-1">
                                 <span onclick="openProfile('${data.username}')" class="text-[10px] font-black text-zinc-400 uppercase italic cursor-pointer hover:text-white">${data.username} ${getRankHtml(data.username)}</span>
@@ -257,10 +269,24 @@
 
         socket.on('userListUpdate', (users) => {
             onlineUsers = users;
+            // Update the registry (Local storage persistent user database)
             const registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
-            users.forEach(u => { if(!registry.some(r => r.username === u.username)) registry.push(u); });
+            users.forEach(u => { 
+                if(!registry.some(r => r.username === u.username)) registry.push(u); 
+            });
             localStorage.setItem('user_registry', JSON.stringify(registry));
+            
             offlineUsers = registry.filter(r => !users.some(u => u.username === r.username));
+            filterSidebar();
+        });
+
+        // Registry Update handler (if server supports it for full database sync)
+        socket.on('registryUpdate', (fullRegistry) => {
+            localStorage.setItem('user_registry', JSON.stringify(fullRegistry));
+            onlineUsers.forEach(u => {
+                 if(!fullRegistry.some(r => r.username === u.username)) fullRegistry.push(u);
+            });
+            offlineUsers = fullRegistry.filter(r => !onlineUsers.some(u => u.username === r.username));
             filterSidebar();
         });
 
@@ -293,10 +319,10 @@
             container.innerHTML = '';
             const registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
 
-            STAFF_ROLES.forEach(role => {
+            STAFF_CONFIG.forEach(config => {
                 const assigned = registry.filter(u => {
-                    const r = role.toLowerCase().substring(0, 4); // Logic check: e.g. "Deve" matches Developer
-                    return u.username.toLowerCase().includes(r);
+                    const uname = u.username.toLowerCase();
+                    return config.keywords.some(k => uname.includes(k));
                 });
 
                 const roleDiv = document.createElement('div');
@@ -306,7 +332,7 @@
                 if(assigned.length > 0) {
                     usersHtml = assigned.map(u => `
                         <div onclick="openProfile('${u.username}'); closeModal('staff-modal')" class="flex items-center gap-2 mt-2 cursor-pointer group">
-                            <img src="default.png" class="w-6 h-6 rounded-lg pfp-main">
+                            <div class="w-6 h-6 rounded-lg bg-zinc-700 flex items-center justify-center text-[8px] font-bold border border-white/10 uppercase">${u.username.substring(0, 2)}</div>
                             <span class="text-xs font-bold text-zinc-200 group-hover:text-indigo-400 transition-colors">${u.username}</span>
                             <div class="w-1.5 h-1.5 rounded-full ${onlineUsers.some(ou => ou.username === u.username) ? 'bg-green-500' : 'bg-zinc-600'}"></div>
                         </div>
@@ -316,7 +342,7 @@
                 }
 
                 roleDiv.innerHTML = `
-                    <p class="text-[10px] font-black text-indigo-400/70 uppercase tracking-[0.2em] mb-1">${role}</p>
+                    <p class="text-[10px] font-black text-indigo-400/70 uppercase tracking-[0.2em] mb-1">${config.label}</p>
                     <div class="flex flex-col gap-1">${usersHtml}</div>
                 `;
                 container.appendChild(roleDiv);
@@ -331,11 +357,17 @@
             document.getElementById('p-username').innerText = username;
             document.getElementById('p-ranks').innerHTML = getRankHtml(username);
             document.getElementById('p-likes').innerText = profileLikes[username] || 0;
+            document.getElementById('p-pfp-placeholder').innerText = username.substring(0, 2).toUpperCase();
             updateLikeButtonUI();
             
             const isOnline = onlineUsers.some(u => u.username === username);
             document.getElementById('p-lastseen').innerText = isOnline ? 'Active' : 'Away';
             document.getElementById('p-lastseen').className = isOnline ? 'text-xs font-bold text-green-500' : 'text-xs font-bold text-zinc-500';
+
+            const regUser = JSON.parse(localStorage.getItem('user_registry') || '[]').find(u => u.username === username);
+            if (regUser) {
+                document.getElementById('p-details').innerText = `${regUser.age || '??'} / ${regUser.gender ? regUser.gender.charAt(0) : '?'}`;
+            }
 
             document.getElementById('profile-overlay').classList.add('active');
         }
@@ -375,7 +407,7 @@
             document.getElementById(id).innerHTML = users.map(u => `
                 <div class="flex items-center justify-between p-2.5 rounded-2xl hover:bg-white/5 transition-all group cursor-pointer" onclick="openProfile('${u.username}')">
                     <div class="flex items-center gap-3 min-w-0">
-                        <img src="default.png" class="w-8 h-8 rounded-xl shrink-0 pfp-main">
+                        <div class="w-8 h-8 rounded-xl shrink-0 bg-zinc-800 border border-white/5 flex items-center justify-center text-[10px] font-bold uppercase">${u.username.substring(0, 2)}</div>
                         <div class="truncate">
                             <div class="flex items-center truncate">
                                 <span class="text-xs font-bold text-zinc-200 truncate group-hover:text-indigo-400">${u.username}</span>
