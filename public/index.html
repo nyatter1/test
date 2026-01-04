@@ -3,22 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lounge | Authentication</title>
-    <!-- Corrected Tailwind and Font imports -->
+    <title>Whispers | Secure Entry</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --accent: #8b5cf6;
+            --bg-dark: #050505;
+            --card-bg: #0d0d0d;
+        }
+
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #09090b;
-            color: #fafafa;
+            background-color: var(--bg-dark);
+            color: #ffffff;
             overflow-x: hidden;
         }
 
-        .glass {
-            background: rgba(24, 24, 27, 0.8);
-            backdrop-filter: blur(12px);
+        .whisper-gradient {
+            background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .auth-card {
+            background: var(--card-bg);
             border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .input-group input {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.05);
+            outline: none;
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .glass-circle {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+            filter: blur(40px);
+            z-index: -1;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
         }
 
         @keyframes fadeIn {
@@ -26,232 +74,154 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .animate-in { 
-            animation: fadeIn 0.4s ease-out forwards; 
-        }
-
-        select, input {
-            transition: all 0.2s ease;
-        }
-
-        select {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 1rem center;
-            background-repeat: no-repeat;
-            background-size: 1.5em 1.5em;
-        }
-        
-        input:focus, select:focus {
-            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
-            border-color: #6366f1 !important;
-        }
-
-        .error-shake {
-            animation: shake 0.4s ease-in-out;
-            border-color: #ef4444 !important;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
+        .hidden-state {
+            display: none;
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-[#09090b] to-[#09090b]">
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <div class="glass w-full max-w-md p-10 rounded-[2.5rem] shadow-2xl text-center animate-in border border-white/10">
-        <div class="mb-8">
-            <div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl mx-auto flex items-center justify-center text-3xl mb-4 shadow-2xl shadow-indigo-500/20">
-                👋
-            </div>
-            <h1 id="auth-title" class="text-3xl font-800 tracking-tight text-white">Welcome Back</h1>
-            <p id="auth-subtitle" class="text-zinc-500 mt-2 font-medium">Please sign in to your account</p>
+    <!-- Decorative Elements -->
+    <div class="glass-circle top-[-10%] left-[-10%]"></div>
+    <div class="glass-circle bottom-[-10%] right-[-10%]"></div>
+
+    <div class="w-full max-w-md">
+        <!-- Logo Area -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-800 tracking-tighter mb-2">
+                <span class="whisper-gradient">WHISPERS</span>
+            </h1>
+            <p id="auth-subtitle" class="text-zinc-500 text-sm font-medium tracking-wide uppercase">Connect in silence.</p>
         </div>
 
-        <form id="auth-form" class="space-y-4">
-            <div class="space-y-4 text-left">
-                <!-- Email Input (Common) -->
-                <div>
-                    <label class="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest ml-2">Email Address</label>
-                    <input type="email" id="email" required 
-                        class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-6 py-4 outline-none transition-all text-white placeholder:text-zinc-700"
-                        placeholder="name@example.com">
-                </div>
-
-                <!-- Username Input (Signup Only) -->
-                <div id="username-container" class="hidden">
-                    <label class="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest ml-2">Username</label>
-                    <input type="text" id="username" maxlength="15" 
-                        class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-6 py-4 outline-none transition-all text-white placeholder:text-zinc-700"
-                        placeholder="Choose a display name">
-                </div>
-
-                <!-- Password Input (Common) -->
-                <div>
-                    <label class="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest ml-2">Password</label>
-                    <input type="password" id="password" required 
-                        class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-6 py-4 outline-none transition-all text-white placeholder:text-zinc-700"
-                        placeholder="••••••••">
-                </div>
-                
-                <div id="profile-container" class="grid grid-cols-2 gap-4 hidden">
-                    <!-- Age Selection -->
-                    <div>
-                        <label class="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest ml-2">Age</label>
-                        <select id="age" class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-4 py-4 outline-none transition-all text-white appearance-none cursor-pointer">
-                            <option value="">Select</option>
-                            <script>
-                                for(let i=13; i<=99; i++) {
-                                    document.write(`<option value="${i}">${i}</option>`);
-                                }
-                            </script>
-                        </select>
-                    </div>
-                    <!-- Gender Selection -->
-                    <div>
-                        <label class="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest ml-2">Gender</label>
-                        <select id="gender" class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-4 py-4 outline-none transition-all text-white appearance-none cursor-pointer">
-                            <option value="">Select</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Error Message Box -->
-            <div id="error-message" class="text-red-400 text-xs font-bold hidden py-2 bg-red-400/10 rounded-xl border border-red-400/20">
-                Invalid credentials.
-            </div>
+        <!-- Auth Card -->
+        <div class="auth-card rounded-[2.5rem] p-8 md:p-10">
             
-            <button type="submit" id="submit-btn" 
-                class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-indigo-600/20 active:scale-[0.98] mt-4 flex items-center justify-center gap-2">
-                <span>Sign In</span>
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-            </button>
-        </form>
-        
-        <div class="mt-8 pt-6 border-t border-white/5">
-            <button id="toggle-mode" class="text-zinc-400 hover:text-indigo-400 text-xs font-bold transition-colors">
-                Don't have an account? <span class="text-indigo-500 underline">Sign Up</span>
-            </button>
+            <!-- Login State -->
+            <div id="login-state" class="fade-in">
+                <h2 class="text-2xl font-semibold mb-6">Welcome back</h2>
+                <form onsubmit="handleAuth(event, 'login')" class="space-y-4">
+                    <div class="input-group">
+                        <label class="text-[10px] uppercase font-bold text-zinc-500 ml-1 mb-2 block">Username or Email</label>
+                        <input type="text" required class="w-full rounded-2xl px-4 py-4 text-white placeholder-zinc-600" placeholder="your_handle">
+                    </div>
+                    <div class="input-group">
+                        <label class="text-[10px] uppercase font-bold text-zinc-500 ml-1 mb-2 block">Password</label>
+                        <input type="password" required class="w-full rounded-2xl px-4 py-4 text-white placeholder-zinc-600" placeholder="••••••••">
+                    </div>
+                    <div class="flex justify-end">
+                        <a href="#" class="text-xs text-zinc-500 hover:text-indigo-400 transition-colors">Forgot password?</a>
+                    </div>
+                    <button type="submit" class="btn-primary w-full py-4 rounded-2xl font-bold text-sm shadow-lg shadow-indigo-500/20 mt-4">
+                        Sign In
+                    </button>
+                </form>
+                <div class="mt-8 text-center">
+                    <p class="text-zinc-500 text-sm">New to Whispers? 
+                        <button onclick="toggleState('signup')" class="text-indigo-400 font-semibold hover:underline">Create Account</button>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Signup State -->
+            <div id="signup-state" class="fade-in hidden-state">
+                <h2 class="text-2xl font-semibold mb-6">Join the fold</h2>
+                <form onsubmit="handleAuth(event, 'signup')" class="space-y-4">
+                    <div class="input-group">
+                        <label class="text-[10px] uppercase font-bold text-zinc-500 ml-1 mb-2 block">Pick a handle</label>
+                        <input type="text" id="signup-username" required class="w-full rounded-2xl px-4 py-4 text-white placeholder-zinc-600" placeholder="e.g. moonlight_soul">
+                    </div>
+                    <div class="input-group">
+                        <label class="text-[10px] uppercase font-bold text-zinc-500 ml-1 mb-2 block">Email Address</label>
+                        <input type="email" required class="w-full rounded-2xl px-4 py-4 text-white placeholder-zinc-600" placeholder="you@example.com">
+                    </div>
+                    <div class="input-group">
+                        <label class="text-[10px] uppercase font-bold text-zinc-500 ml-1 mb-2 block">Secure Password</label>
+                        <input type="password" required class="w-full rounded-2xl px-4 py-4 text-white placeholder-zinc-600" placeholder="••••••••">
+                    </div>
+                    <p class="text-[10px] text-zinc-500 text-center px-4 leading-relaxed">
+                        By signing up, you agree to our <span class="text-zinc-300">Privacy Protocols</span> and <span class="text-zinc-300">Shadow Rules</span>.
+                    </p>
+                    <button type="submit" class="btn-primary w-full py-4 rounded-2xl font-bold text-sm shadow-lg shadow-indigo-500/20 mt-4">
+                        Initialize Account
+                    </button>
+                </form>
+                <div class="mt-8 text-center">
+                    <p class="text-zinc-500 text-sm">Already a member? 
+                        <button onclick="toggleState('login')" class="text-indigo-400 font-semibold hover:underline">Sign In</button>
+                    </p>
+                </div>
+            </div>
+
         </div>
+        
+        <!-- Footer -->
+        <p class="text-center mt-8 text-zinc-600 text-xs font-medium">
+            &copy; 2024 Whispers Protocol. End-to-end encrypted.
+        </p>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white text-black px-6 py-3 rounded-2xl text-sm font-bold shadow-2xl transition-all opacity-0 pointer-events-none translate-y-4">
+        Success Message
     </div>
 
     <script>
-        let isLogin = true;
+        function toggleState(state) {
+            const login = document.getElementById('login-state');
+            const signup = document.getElementById('signup-state');
+            const subtitle = document.getElementById('auth-subtitle');
 
-        const authForm = document.getElementById('auth-form');
-        const toggleBtn = document.getElementById('toggle-mode');
-        const title = document.getElementById('auth-title');
-        const subtitle = document.getElementById('auth-subtitle');
-        const submitBtn = document.getElementById('submit-btn');
-        const usernameContainer = document.getElementById('username-container');
-        const profileContainer = document.getElementById('profile-container');
-        const errorMessage = document.getElementById('error-message');
-
-        // Toggle between Login and Signup
-        toggleBtn.onclick = () => {
-            isLogin = !isLogin;
-            title.innerText = isLogin ? "Welcome Back" : "Create Account";
-            subtitle.innerText = isLogin ? "Please sign in to your account" : "Join the lounge community today";
-            submitBtn.querySelector('span').innerText = isLogin ? "Sign In" : "Create Account";
-            toggleBtn.innerHTML = isLogin ? 
-                "Don't have an account? <span class='text-indigo-500 underline'>Sign Up</span>" : 
-                "Already have an account? <span class='text-indigo-500 underline'>Log In</span>";
-            
-            usernameContainer.classList.toggle('hidden', isLogin);
-            profileContainer.classList.toggle('hidden', isLogin);
-            errorMessage.classList.add('hidden');
-            
-            // Toggle required attributes
-            document.getElementById('username').required = !isLogin;
-            document.getElementById('age').required = !isLogin;
-            document.getElementById('gender').required = !isLogin;
-        };
-
-        // Simulated Database logic using LocalStorage
-        const getUsers = () => JSON.parse(localStorage.getItem('registered_users') || '[]');
-        const saveUser = (user) => {
-            const users = getUsers();
-            users.push(user);
-            localStorage.setItem('registered_users', JSON.stringify(users));
-        };
-
-        authForm.onsubmit = (e) => {
-            e.preventDefault();
-            errorMessage.classList.add('hidden');
-
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const users = getUsers();
-
-            if (isLogin) {
-                // LOGIN LOGIC
-                const user = users.find(u => u.email === email && u.password === password);
-                
-                if (user) {
-                    localStorage.setItem('chat_profile', JSON.stringify({
-                        username: user.username,
-                        email: user.email,
-                        age: user.age,
-                        gender: user.gender,
-                        uid: user.uid,
-                        joinedAt: Date.now()
-                    }));
-                    window.location.href = '/chat';
-                } else {
-                    showError("Invalid email or password.");
-                }
+            if (state === 'signup') {
+                login.classList.add('hidden-state');
+                signup.classList.remove('hidden-state');
+                subtitle.innerText = "Start your quiet journey.";
             } else {
-                // SIGNUP LOGIC
-                const username = document.getElementById('username').value.trim();
-                const age = document.getElementById('age').value;
-                const gender = document.getElementById('gender').value;
-
-                // Check if email or username is taken
-                if (users.some(u => u.email === email)) {
-                    return showError("This email is already registered.");
-                }
-                if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-                    return showError("Username is already taken.");
-                }
-
-                const newUser = {
-                    email,
-                    password,
-                    username,
-                    age,
-                    gender,
-                    uid: 'u_' + Math.random().toString(36).substr(2, 9)
-                };
-
-                saveUser(newUser);
-                
-                // Log them in immediately
-                localStorage.setItem('chat_profile', JSON.stringify({
-                    ...newUser,
-                    joinedAt: Date.now()
-                }));
-                window.location.href = '/chat';
+                signup.classList.add('hidden-state');
+                login.classList.remove('hidden-state');
+                subtitle.innerText = "Connect in silence.";
             }
-        };
-
-        function showError(msg) {
-            errorMessage.innerText = msg;
-            errorMessage.classList.remove('hidden');
-            authForm.classList.add('error-shake');
-            setTimeout(() => authForm.classList.remove('error-shake'), 400);
         }
 
-        // Auto-redirect if session exists
-        window.onload = () => {
-            if (localStorage.getItem('chat_profile')) {
-                window.location.href = '/chat';
-            }
-        };
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.style.background = isError ? '#ef4444' : '#ffffff';
+            toast.style.color = isError ? '#ffffff' : '#000000';
+            toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+            }, 3000);
+        }
+
+        function handleAuth(event, type) {
+            event.preventDefault();
+            
+            // For now, we simulate a successful login/signup
+            // This will store the data in localStorage for the next phase (the chat app)
+            const username = type === 'signup' 
+                ? document.getElementById('signup-username').value 
+                : 'User' + Math.floor(Math.random() * 1000);
+
+            const profile = {
+                username: username,
+                joined: new Date().toISOString(),
+                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+                isAuth: true
+            };
+
+            localStorage.setItem('whispers_session', JSON.stringify(profile));
+            
+            showToast(type === 'signup' ? "Account created!" : "Welcome back!");
+            
+            // Redirect simulation
+            setTimeout(() => {
+                // In a real app, window.location.href = '/chat'
+                console.log("Authenticated as:", username);
+                showToast("Redirecting to the Lounge...");
+            }, 1500);
+        }
     </script>
 </body>
 </html>
