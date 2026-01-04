@@ -3,61 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Whisper | Private & Public</title>
+    <title>Whisper | Realtime Mesh</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg: #050505;
-            --card: #0d0d0d;
-            --accent: #8b5cf6;
-        }
-
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background: var(--bg);
-            color: #e2e8f0;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        .glass {
-            background: rgba(13, 13, 13, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .message-bubble {
-            max-width: 80%;
-            animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(8px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
+        :root { --bg: #050505; --accent: #8b5cf6; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: #e2e8f0; height: 100vh; overflow: hidden; }
+        .glass { background: rgba(13, 13, 13, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .message-bubble { max-width: 85%; animation: slideUp 0.2s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .scroll-hide::-webkit-scrollbar { width: 4px; }
         .scroll-hide::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
-
-        .typing-dot {
-            width: 4px;
-            height: 4px;
-            background: #666;
-            border-radius: 50%;
-            display: inline-block;
-            animation: bounce 1.4s infinite ease-in-out both;
-        }
-        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
-
-        .dm-active {
-            background: rgba(139, 92, 246, 0.1);
-            border-left: 3px solid #8b5cf6;
-        }
-
-        .notification-ping {
-            animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
-        }
+        .dm-active { background: rgba(139, 92, 246, 0.1); border-left: 3px solid #8b5cf6; }
+        .online-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px #10b981; }
     </style>
 </head>
 <body class="flex flex-col md:flex-row h-screen w-full">
@@ -66,13 +24,13 @@
     <aside class="w-full md:w-80 glass flex flex-col z-20 border-r border-white/5">
         <div class="p-6 border-b border-white/5">
             <h1 class="text-2xl font-800 tracking-tighter bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">WHISPER</h1>
-            <p id="channel-indicator" class="text-[9px] uppercase tracking-[0.3em] text-zinc-500 font-bold mt-1">Global Channel</p>
+            <p id="status-tag" class="text-[9px] uppercase tracking-[0.3em] text-emerald-500 font-bold mt-1">Connecting...</p>
         </div>
 
-        <!-- Navigation / Rooms -->
         <div class="p-4 space-y-4 flex-1 overflow-y-auto scroll-hide">
-            <div id="global-room-btn" onclick="switchChannel('global')" class="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all dm-active hover:bg-white/5">
-                <div class="w-10 h-10 bg-zinc-800 rounded-lg flex items-center justify-center text-lg">🌐</div>
+            <!-- Global Room -->
+            <div id="btn-global" onclick="switchChannel('global')" class="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all dm-active hover:bg-white/5">
+                <div class="w-10 h-10 bg-zinc-800 rounded-lg flex items-center justify-center">🌐</div>
                 <div class="flex-1">
                     <p class="text-xs font-bold">Global Network</p>
                     <p class="text-[10px] text-zinc-500">Public Protocol</p>
@@ -80,230 +38,214 @@
             </div>
 
             <div class="pt-4">
-                <h3 class="text-[10px] uppercase tracking-widest text-zinc-600 font-black mb-4 px-2">Encrypted DM's</h3>
-                <div id="participant-list" class="space-y-1">
-                    <!-- Participants injected here -->
+                <h3 class="text-[10px] uppercase tracking-widest text-zinc-600 font-black mb-4 px-2">Online Peers</h3>
+                <div id="user-list" class="space-y-1">
+                    <!-- Real users injected here -->
                 </div>
             </div>
         </div>
 
-        <!-- User Identity -->
+        <!-- Identity -->
         <div class="p-4 bg-white/5 border-t border-white/5">
             <div class="flex items-center gap-3">
-                <div id="user-avatar" class="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center text-white font-bold shadow-lg">U</div>
-                <div class="flex-1">
-                    <input type="text" id="username-input" class="bg-transparent font-bold text-sm w-full outline-none hover:bg-white/5 rounded px-1" value="User">
-                    <p class="text-[10px] text-zinc-500">Identity Verified</p>
+                <div id="my-avatar" class="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center text-white font-bold">?</div>
+                <div class="flex-1 overflow-hidden">
+                    <p class="text-[10px] text-zinc-500 uppercase font-bold">My ID</p>
+                    <p id="my-id-display" class="text-[10px] font-mono text-zinc-400 truncate">...</p>
                 </div>
             </div>
         </div>
     </aside>
 
-    <!-- Main Chat Area -->
+    <!-- Chat View -->
     <main class="flex-1 flex flex-col relative bg-[#070707]">
-        <!-- Active Chat Header -->
-        <header id="chat-header" class="p-4 border-b border-white/5 flex items-center gap-4 bg-black/20">
-            <div id="header-icon" class="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-sm">🌐</div>
-            <div>
-                <h2 id="header-title" class="text-sm font-bold">Global Network</h2>
-                <p id="header-status" class="text-[10px] text-emerald-500 font-bold uppercase tracking-tighter">Live Transmission</p>
+        <header class="p-4 border-b border-white/5 flex items-center justify-between bg-black/20">
+            <div class="flex items-center gap-4">
+                <div id="header-icon" class="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-sm">🌐</div>
+                <div>
+                    <h2 id="header-title" class="text-sm font-bold">Global Network</h2>
+                    <p id="header-sub" class="text-[10px] text-zinc-500 uppercase">Visible to all users</p>
+                </div>
             </div>
         </header>
 
-        <!-- Messages Area -->
-        <div id="chat-container" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scroll-hide">
-            <!-- Messages injected here -->
-        </div>
+        <div id="chat-container" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 scroll-hide"></div>
 
-        <!-- Typing Indicator -->
-        <div id="typing-status" class="px-8 py-2 text-xs text-zinc-500 italic flex items-center gap-2 opacity-0 transition-opacity">
-            <span id="typing-name">Someone</span> is typing
-            <div class="flex gap-1"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
-        </div>
-
-        <!-- Input Area -->
-        <div class="p-4 md:p-6">
-            <div class="max-w-4xl mx-auto relative">
-                <input type="text" id="message-input" placeholder="Secure transmission..." 
-                    class="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-4 px-6 pr-16 outline-none focus:border-violet-500/30 transition-all text-sm shadow-2xl">
-                <button id="send-btn" class="absolute right-3 top-1/2 -translate-y-1/2 bg-violet-600 hover:bg-violet-500 text-white p-2 rounded-xl transition-all shadow-lg active:scale-95">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+        <div class="p-4 md:p-6 bg-gradient-to-t from-black to-transparent">
+            <div class="max-w-4xl mx-auto flex gap-2">
+                <input type="text" id="msg-input" placeholder="Type a message..." 
+                    class="flex-1 bg-white/[0.03] border border-white/10 rounded-2xl py-4 px-6 outline-none focus:border-violet-500/30 text-sm">
+                <button id="send-btn" class="bg-violet-600 hover:bg-violet-500 text-white px-6 rounded-2xl transition-all active:scale-95 font-bold text-sm">
+                    SEND
                 </button>
             </div>
         </div>
     </main>
 
-    <script>
-        // --- DATA & STATE ---
-        let currentChannel = 'global'; // 'global' or 'bot1', 'bot2', etc.
-        let username = localStorage.getItem('whisper_user') || "User_" + Math.floor(Math.random() * 99);
-        
-        const participants = [
-            { id: 'bot1', name: 'Nova', icon: '💎', color: 'bg-blue-600', messages: [] },
-            { id: 'bot2', name: 'Zephyr', icon: '🌪️', color: 'bg-emerald-600', messages: [] },
-            { id: 'bot3', name: 'Echo', icon: '🎧', color: 'bg-amber-600', messages: [] }
-        ];
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const globalHistory = [
-            { sender: 'System', text: 'End-to-end encryption initialized. Welcome to the global mesh.', type: 'system' }
-        ];
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'whisper-mesh';
 
-        // --- CORE FUNCTIONS ---
+        let currentUser = null;
+        let currentTarget = 'global'; // 'global' or a userId
+        let unsubMessages = null;
 
-        function init() {
-            document.getElementById('username-input').value = username;
-            renderParticipants();
-            renderMessages();
-            updateAvatar();
-
-            // Handlers
-            document.getElementById('send-btn').onclick = handleSend;
-            document.getElementById('message-input').onkeypress = (e) => e.key === 'Enter' && handleSend();
-            document.getElementById('username-input').onchange = (e) => {
-                username = e.target.value;
-                localStorage.setItem('whisper_user', username);
-                updateAvatar();
-            };
+        // --- AUTH & INITIALIZATION ---
+        async function initAuth() {
+            try {
+                await signInAnonymously(auth);
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        currentUser = user;
+                        document.getElementById('my-id-display').innerText = user.uid;
+                        document.getElementById('my-avatar').innerText = user.uid.substring(0,2).toUpperCase();
+                        document.getElementById('status-tag').innerText = "Encrypted & Live";
+                        updatePresence(user.uid);
+                        listenToUsers();
+                        switchChannel('global');
+                    }
+                });
+            } catch (err) { console.error(err); }
         }
 
-        function switchChannel(channelId) {
-            currentChannel = channelId;
+        // Presence Logic
+        async function updatePresence(uid) {
+            const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'presence', uid);
+            await setDoc(userRef, { uid, lastSeen: serverTimestamp() });
+            // Clean up on disconnect
+            window.addEventListener('beforeunload', () => deleteDoc(userRef));
+        }
+
+        function listenToUsers() {
+            const q = collection(db, 'artifacts', appId, 'public', 'data', 'presence');
+            onSnapshot(q, (snapshot) => {
+                const list = document.getElementById('user-list');
+                list.innerHTML = "";
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if(data.uid === currentUser.uid) return;
+                    
+                    const div = document.createElement('div');
+                    div.className = `flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all hover:bg-white/5 ${currentTarget === data.uid ? 'dm-active' : ''}`;
+                    div.onclick = () => switchChannel(data.uid);
+                    div.innerHTML = `
+                        <div class="w-10 h-10 bg-zinc-800 rounded-lg flex items-center justify-center text-[10px] font-bold">${data.uid.substring(0,2)}</div>
+                        <div class="flex-1 overflow-hidden">
+                            <p class="text-xs font-bold truncate">${data.uid}</p>
+                            <div class="flex items-center gap-1">
+                                <div class="online-dot"></div>
+                                <span class="text-[8px] text-zinc-500 uppercase font-black">Active</span>
+                            </div>
+                        </div>
+                    `;
+                    list.appendChild(div);
+                });
+            }, (err) => console.error("Presence error:", err));
+        }
+
+        // --- CHAT LOGIC ---
+        window.switchChannel = function(id) {
+            currentTarget = id;
+            if(unsubMessages) unsubMessages();
             
-            // Update UI Sidebar
             document.querySelectorAll('.dm-active').forEach(el => el.classList.remove('dm-active'));
-            if(channelId === 'global') {
-                document.getElementById('global-room-btn').classList.add('dm-active');
+            if(id === 'global') {
+                document.getElementById('btn-global').classList.add('dm-active');
                 document.getElementById('header-title').innerText = "Global Network";
                 document.getElementById('header-icon').innerText = "🌐";
-                document.getElementById('header-status').innerText = "Live Transmission";
-                document.getElementById('channel-indicator').innerText = "Global Channel";
+                document.getElementById('header-sub').innerText = "Visible to all users";
             } else {
-                const bot = participants.find(p => p.id === channelId);
-                document.getElementById(`btn-${channelId}`).classList.add('dm-active');
-                document.getElementById('header-title').innerText = `Private: ${bot.name}`;
-                document.getElementById('header-icon').innerText = bot.icon;
-                document.getElementById('header-status').innerText = "Encrypted Peer-to-Peer";
-                document.getElementById('channel-indicator').innerText = "Private Node";
-                // Clear any "new message" indicator for this bot
-                const badge = document.getElementById(`badge-${channelId}`);
-                if(badge) badge.classList.add('hidden');
-            }
-            
-            renderMessages();
-        }
-
-        function renderParticipants() {
-            const list = document.getElementById('participant-list');
-            list.innerHTML = participants.map(p => `
-                <div id="btn-${p.id}" onclick="switchChannel('${p.id}')" class="flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all hover:bg-white/5 relative">
-                    <div class="w-10 h-10 ${p.color} rounded-lg flex items-center justify-center text-lg shadow-lg shadow-black/40">${p.icon}</div>
-                    <div class="flex-1">
-                        <p class="text-xs font-bold">${p.name}</p>
-                        <p class="text-[9px] text-zinc-600 font-bold uppercase tracking-tighter">Verified Agent</p>
-                    </div>
-                    <div id="badge-${p.id}" class="hidden absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 bg-violet-500 rounded-full notification-ping"></div>
-                </div>
-            `).join('');
-        }
-
-        function handleSend() {
-            const input = document.getElementById('message-input');
-            const text = input.value.trim();
-            if(!text) return;
-
-            const msg = { sender: 'me', text: text, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
-            
-            if(currentChannel === 'global') {
-                globalHistory.push(msg);
-            } else {
-                const bot = participants.find(p => p.id === currentChannel);
-                bot.messages.push(msg);
+                document.getElementById('header-title').innerText = `Private: ${id.substring(0,8)}...`;
+                document.getElementById('header-icon').innerText = "👤";
+                document.getElementById('header-sub').innerText = "End-to-End Encrypted Channel";
             }
 
-            renderMessages();
-            input.value = "";
-            simulateResponse(text, currentChannel);
+            loadMessages();
+        };
+
+        function loadMessages() {
+            let q;
+            const collectionPath = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
+            
+            // Simple query logic (Filter in memory to avoid index requirements as per Rule 2)
+            unsubMessages = onSnapshot(collectionPath, (snapshot) => {
+                const container = document.getElementById('chat-container');
+                container.innerHTML = "";
+                
+                let messages = [];
+                snapshot.forEach(doc => messages.push(doc.data()));
+                
+                // Sort by time manually
+                messages.sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
+
+                messages.forEach(msg => {
+                    // Privacy filter
+                    const isGlobalMsg = msg.type === 'global' && currentTarget === 'global';
+                    const isPrivateMsg = msg.type === 'private' && 
+                        ((msg.sender === currentUser.uid && msg.receiver === currentTarget) || 
+                         (msg.sender === currentTarget && msg.receiver === currentUser.uid));
+
+                    if (isGlobalMsg || isPrivateMsg) {
+                        renderMessage(msg);
+                    }
+                });
+                container.scrollTop = container.scrollHeight;
+            }, (err) => console.error("Message Load Error:", err));
         }
 
-        function renderMessages() {
+        function renderMessage(msg) {
             const container = document.getElementById('chat-container');
-            const activeData = currentChannel === 'global' ? globalHistory : participants.find(p => p.id === currentChannel).messages;
+            const isMe = msg.sender === currentUser.uid;
+            const time = msg.timestamp ? new Date(msg.timestamp.seconds * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '...';
             
-            container.innerHTML = activeData.map(m => {
-                if(m.type === 'system') {
-                    return `<div class="flex justify-center"><span class="px-3 py-1 bg-white/5 rounded-full text-[9px] text-zinc-500 uppercase font-black tracking-widest">${m.text}</span></div>`;
-                }
-
-                const isMe = m.sender === 'me';
-                const bot = isMe ? null : participants.find(p => p.name === m.sender);
-
-                return `
-                    <div class="flex ${isMe ? 'justify-end' : 'justify-start'} gap-3">
-                        ${!isMe ? `<div class="w-8 h-8 rounded-lg ${bot?.color || 'bg-zinc-800'} flex items-center justify-center text-xs mt-1 shadow-lg">${bot?.icon || '🤖'}</div>` : ''}
-                        <div class="flex flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}">
-                            <div class="message-bubble ${isMe ? 'bg-violet-600 text-white rounded-tr-none' : 'glass text-zinc-200 rounded-tl-none'} px-4 py-2.5 rounded-2xl shadow-xl">
-                                <p class="text-sm">${escape(m.text)}</p>
-                            </div>
-                            <span class="text-[8px] text-zinc-600 uppercase font-bold px-1">${m.time} ${isMe ? '• Delivered' : ''}</span>
-                        </div>
+            const div = document.createElement('div');
+            div.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
+            div.innerHTML = `
+                <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[80%]">
+                    ${!isMe ? `<span class="text-[9px] font-black text-zinc-600 mb-1 ml-1">${msg.sender.substring(0,8)}</span>` : ''}
+                    <div class="message-bubble ${isMe ? 'bg-violet-600 text-white rounded-tr-none' : 'glass text-zinc-200 rounded-tl-none'} px-4 py-2.5 rounded-2xl shadow-lg">
+                        <p class="text-sm leading-relaxed">${escapeHTML(msg.text)}</p>
                     </div>
-                `;
-            }).join('');
-            
-            container.scrollTop = container.scrollHeight;
+                    <span class="text-[8px] text-zinc-600 uppercase font-bold mt-1 px-1">${time}</span>
+                </div>
+            `;
+            container.appendChild(div);
         }
 
-        function simulateResponse(userText, channelId) {
-            const target = channelId === 'global' ? participants[Math.floor(Math.random()*participants.length)] : participants.find(p => p.id === channelId);
-            
-            // Show typing
-            setTimeout(() => {
-                document.getElementById('typing-name').innerText = target.name;
-                document.getElementById('typing-status').classList.remove('opacity-0');
-            }, 600);
+        async function sendMessage() {
+            const input = document.getElementById('msg-input');
+            const text = input.value.trim();
+            if(!text || !currentUser) return;
 
-            setTimeout(() => {
-                document.getElementById('typing-status').classList.add('opacity-0');
-                const reply = { 
-                    sender: target.name, 
-                    text: getBotResponse(userText, target.name), 
-                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
-                };
+            const payload = {
+                text,
+                sender: currentUser.uid,
+                type: currentTarget === 'global' ? 'global' : 'private',
+                receiver: currentTarget === 'global' ? 'all' : currentTarget,
+                timestamp: serverTimestamp()
+            };
 
-                if(channelId === 'global') {
-                    globalHistory.push(reply);
-                } else {
-                    target.messages.push(reply);
-                }
-
-                // If user is in a different channel, show notification badge
-                if(currentChannel !== channelId && channelId !== 'global') {
-                    const badge = document.getElementById(`badge-${channelId}`);
-                    if(badge) badge.classList.remove('hidden');
-                }
-
-                renderMessages();
-            }, 1800);
+            input.value = "";
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'messages'), payload);
         }
 
-        function getBotResponse(input, name) {
-            const text = input.toLowerCase();
-            if(text.includes('private') || text.includes('dm')) return "Our connection is now secured via 4096-bit rotation.";
-            if(text.includes('hey') || text.includes('hi')) return `Hello ${username}, status looks green from my side.`;
-            return `Data packet received by ${name}. Relaying to the mesh.`;
+        function escapeHTML(str) {
+            const p = document.createElement('p');
+            p.textContent = str;
+            return p.innerHTML;
         }
 
-        function updateAvatar() {
-            document.getElementById('user-avatar').innerText = username.charAt(0).toUpperCase();
-        }
+        document.getElementById('send-btn').onclick = sendMessage;
+        document.getElementById('msg-input').onkeypress = (e) => e.key === 'Enter' && sendMessage();
 
-        function escape(s) {
-            let d = document.createElement('div');
-            d.textContent = s;
-            return d.innerHTML;
-        }
-
-        window.onload = init;
+        initAuth();
     </script>
 </body>
 </html>
