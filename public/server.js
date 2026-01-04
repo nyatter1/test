@@ -1,45 +1,55 @@
-/**
- * WHISPER SERVER (Node.js/Express)
- * This server hosts the static frontend and provides a 
- * starting point for custom backend APIs.
- */
-
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const path = require('path');
+
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
 const PORT = process.env.PORT || 3000;
 
-// 1. Serve static files from the 'public' directory
-// This handles all assets, CSS, and JS files located in /public
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files from the current directory
+app.use(express.static(__dirname));
 
-// Middleware to parse JSON bodies
-app.use(express.json());
+// Store connected players
+const players = {};
 
-// 2. Main route - Pointing to the primary chat file in the public folder
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+io.on('connection', (socket) => {
+    console.log(`User connected: ${socket.id}`);
+
+    // Create a new player entry
+    players[socket.id] = {
+        id: socket.id,
+        position: { x: 0, y: 1, z: 0 },
+        rotation: { y: 0 },
+        color: '#' + Math.floor(Math.random() * 16777215).toString(16)
+    };
+
+    // Send the current players list to the new player
+    socket.emit('currentPlayers', players);
+
+    // Broadcast new player to others
+    socket.broadcast.emit('newPlayer', players[socket.id]);
+
+    // Handle movement updates
+    socket.on('playerMovement', (movementData) => {
+        if (players[socket.id]) {
+            players[socket.id].position = movementData.position;
+            players[socket.id].rotation = movementData.rotation;
+            // Broadcast the movement to all other players
+            socket.broadcast.emit('playerMoved', players[socket.id]);
+        }
+    });
+
+    // Handle disconnection
+    socket.on('disconnect', () => {
+        console.log(`User disconnected: ${socket.id}`);
+        delete players[socket.id];
+        io.emit('playerDisconnected', socket.id);
+    });
 });
 
-// Route for the login page specifically
-app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-
-/**
- * OPTIONAL: Backend API Endpoints
- */
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'Whisper Protocol Active', timestamp: new Date() });
-});
-
-// Start the server
-app.listen(PORT, () => {
-    console.log(`
-    -------------------------------------------
-    WHISPER SERVER ACTIVE
-    URL: http://localhost:${PORT}
-    SERVED FROM: /public folder
-    -------------------------------------------
-    `);
+server.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
 });
