@@ -3,255 +3,351 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lounge | Authentication</title>
-    <!-- Corrected Tailwind and Font imports -->
+    <title>Lounge | Premium Chat Experience</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #09090b;
-            color: #fafafa;
-            overflow-x: hidden;
+        :root {
+            --bg-main: #09090b;
+            --bg-glass: rgba(24, 24, 27, 0.85);
+            --border-white: rgba(255, 255, 255, 0.05);
+            --accent-indigo: #6366f1;
+            --vip-gold: #fbbf24;
+            --staff-red: #f87171;
         }
 
-        .glass {
-            background: rgba(24, 24, 27, 0.8);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: var(--bg-main); 
+            color: #fafafa; 
+            overflow: hidden;
+            height: 100vh;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+        .glass { 
+            background: var(--bg-glass); 
+            backdrop-filter: blur(16px); 
+            border: 1px solid var(--border-white); 
+        }
+
+        /* Message Area Utilities */
+        .chat-height { height: calc(100vh - 180px); }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+        /* Rank Typography & Glows */
+        .rank-tag {
+            font-size: 8px;
+            font-weight: 900;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .rank-vip { 
+            color: var(--vip-gold); 
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            background: rgba(251, 191, 36, 0.05);
+            text-shadow: 0 0 8px rgba(251, 191, 36, 0.2);
+        }
+
+        .rank-staff { 
+            color: var(--staff-red); 
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            background: rgba(248, 113, 113, 0.05);
+            text-shadow: 0 0 8px rgba(248, 113, 113, 0.2);
+        }
+
+        .rank-user { 
+            color: #94a3b8; 
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: rgba(148, 163, 184, 0.05);
+        }
+
+        /* Message Animations */
+        @keyframes messageIn {
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .animate-in { 
-            animation: fadeIn 0.4s ease-out forwards; 
-        }
-
-        select, input {
+        .message-bubble { 
+            animation: messageIn 0.2s ease-out forwards;
             transition: all 0.2s ease;
+            border: 1px solid transparent;
         }
 
-        select {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 1rem center;
-            background-repeat: no-repeat;
-            background-size: 1.5em 1.5em;
-        }
-        
-        input:focus, select:focus {
-            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
-            border-color: #6366f1 !important;
+        .message-bubble:hover { 
+            background-color: rgba(255, 255, 255, 0.02);
+            border-color: var(--border-white);
         }
 
-        .error-shake {
-            animation: shake 0.4s ease-in-out;
-            border-color: #ef4444 !important;
+        .system-msg {
+            font-size: 10px;
+            font-weight: 800;
+            color: #52525b;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            background: rgba(24, 24, 27, 0.5);
+            padding: 4px 16px;
+            border-radius: 99px;
+            border: 1px solid var(--border-white);
         }
 
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
+        /* Avatar Gradient */
+        .avatar-gradient {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.2);
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-[#09090b] to-[#09090b]">
+<body class="flex p-4 gap-4 box-border">
 
-    <div class="glass w-full max-w-md p-10 rounded-[2.5rem] shadow-2xl text-center animate-in border border-white/10">
-        <div class="mb-8">
-            <div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl mx-auto flex items-center justify-center text-3xl mb-4 shadow-2xl shadow-indigo-500/20">
-                👋
+    <!-- SIDEBAR: USER LIST & NAVIGATION -->
+    <aside class="w-80 glass rounded-[2.5rem] flex flex-col overflow-hidden shrink-0 hidden lg:flex">
+        <div class="p-8 border-b border-zinc-800/50">
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="font-900 text-2xl tracking-tighter text-white italic">LOUNGE<span class="text-indigo-500">.</span></h2>
+                <div class="flex items-center gap-1.5">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span id="user-count" class="text-[10px] font-black text-zinc-500 uppercase">0 Online</span>
+                </div>
             </div>
-            <h1 id="auth-title" class="text-3xl font-800 tracking-tight text-white">Welcome Back</h1>
-            <p id="auth-subtitle" class="text-zinc-500 mt-2 font-medium">Please sign in to your account</p>
+            <p class="text-[10px] text-zinc-600 font-bold uppercase tracking-[0.2em]">Public Server</p>
         </div>
 
-        <form id="auth-form" class="space-y-4">
-            <div class="space-y-4 text-left">
-                <!-- Email Input (Common) -->
-                <div>
-                    <label class="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest ml-2">Email Address</label>
-                    <input type="email" id="email" required 
-                        class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-6 py-4 outline-none transition-all text-white placeholder:text-zinc-700"
-                        placeholder="name@example.com">
-                </div>
+        <!-- Scrollable Users Section -->
+        <div class="flex-1 overflow-y-auto px-4 py-6 space-y-2" id="user-list">
+            <!-- User items injected here -->
+        </div>
 
-                <!-- Username Input (Signup Only) -->
-                <div id="username-container" class="hidden">
-                    <label class="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest ml-2">Username</label>
-                    <input type="text" id="username" maxlength="15" 
-                        class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-6 py-4 outline-none transition-all text-white placeholder:text-zinc-700"
-                        placeholder="Choose a display name">
-                </div>
-
-                <!-- Password Input (Common) -->
-                <div>
-                    <label class="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest ml-2">Password</label>
-                    <input type="password" id="password" required 
-                        class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-6 py-4 outline-none transition-all text-white placeholder:text-zinc-700"
-                        placeholder="••••••••">
-                </div>
-                
-                <div id="profile-container" class="grid grid-cols-2 gap-4 hidden">
-                    <!-- Age Selection -->
-                    <div>
-                        <label class="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest ml-2">Age</label>
-                        <select id="age" class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-4 py-4 outline-none transition-all text-white appearance-none cursor-pointer">
-                            <option value="">Select</option>
-                            <script>
-                                for(let i=13; i<=99; i++) {
-                                    document.write(`<option value="${i}">${i}</option>`);
-                                }
-                            </script>
-                        </select>
-                    </div>
-                    <!-- Gender Selection -->
-                    <div>
-                        <label class="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest ml-2">Gender</label>
-                        <select id="gender" class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl px-4 py-4 outline-none transition-all text-white appearance-none cursor-pointer">
-                            <option value="">Select</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
+        <!-- Current User Profile Card -->
+        <div class="p-6 bg-zinc-900/40 border-t border-zinc-800/50">
+            <div class="flex items-center gap-4 mb-6 px-2">
+                <div id="my-avatar" class="w-12 h-12 rounded-2xl avatar-gradient flex items-center justify-center font-bold text-white text-xl shadow-xl">?</div>
+                <div class="overflow-hidden">
+                    <div id="my-username" class="text-sm font-bold text-white truncate">Username</div>
+                    <div id="my-rank-display" class="rank-tag rank-user inline-block mt-1">User</div>
                 </div>
             </div>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="logout()" class="py-3 text-[10px] font-black text-zinc-500 hover:text-red-400 transition-all uppercase tracking-widest border border-zinc-800 rounded-xl hover:bg-red-500/5">Logout</button>
+                <button class="py-3 text-[10px] font-black text-zinc-500 hover:text-indigo-400 transition-all uppercase tracking-widest border border-zinc-800 rounded-xl hover:bg-indigo-500/5">Settings</button>
+            </div>
+        </div>
+    </aside>
 
-            <!-- Error Message Box -->
-            <div id="error-message" class="text-red-400 text-xs font-bold hidden py-2 bg-red-400/10 rounded-xl border border-red-400/20">
-                Invalid credentials.
+    <!-- MAIN CHAT AREA -->
+    <main class="flex-1 glass rounded-[2.5rem] flex flex-col overflow-hidden relative">
+        <!-- Chat Header -->
+        <header class="px-8 py-6 border-b border-zinc-800/50 flex items-center justify-between bg-zinc-900/20">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"/></svg>
+                </div>
+                <div>
+                    <h3 id="chat-title" class="text-sm font-black text-white uppercase tracking-widest">Global Lounge</h3>
+                    <p class="text-[10px] text-zinc-500 font-bold uppercase tracking-tighter">Everything is shared publicly</p>
+                </div>
             </div>
             
-            <button type="submit" id="submit-btn" 
-                class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-indigo-600/20 active:scale-[0.98] mt-4 flex items-center justify-center gap-2">
-                <span>Sign In</span>
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-            </button>
-        </form>
-        
-        <div class="mt-8 pt-6 border-t border-white/5">
-            <button id="toggle-mode" class="text-zinc-400 hover:text-indigo-400 text-xs font-bold transition-colors">
-                Don't have an account? <span class="text-indigo-500 underline">Sign Up</span>
-            </button>
+            <div class="flex items-center gap-3">
+                <button class="p-2 text-zinc-500 hover:text-white transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></button>
+                <button class="p-2 text-zinc-500 hover:text-white transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg></button>
+            </div>
+        </header>
+
+        <!-- Messages Container -->
+        <div id="message-container" class="flex-1 overflow-y-auto p-8 space-y-8 chat-height">
+            <!-- Messages appear here via JS -->
         </div>
-    </div>
+
+        <!-- Input Section -->
+        <div class="p-8 pt-0">
+            <!-- PM Indicator -->
+            <div id="pm-indicator" class="hidden flex items-center justify-between px-6 py-3 bg-indigo-600/10 border border-indigo-500/20 rounded-t-2xl mb-[-1px]">
+                <div class="flex items-center gap-3">
+                    <span class="flex h-2 w-2 rounded-full bg-indigo-500"></span>
+                    <span class="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Direct Message: <span id="pm-target-name">User</span></span>
+                </div>
+                <button onclick="exitPrivateChat()" class="text-[10px] font-black text-zinc-500 hover:text-white uppercase">Cancel</button>
+            </div>
+
+            <form id="chat-form" class="flex items-center gap-4 bg-zinc-900/60 p-3 rounded-2xl border border-zinc-800 shadow-2xl focus-within:border-indigo-500/50 transition-all">
+                <div class="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-500 shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <input type="text" id="msg-input" autocomplete="off" 
+                       class="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder:text-zinc-600 font-medium" 
+                       placeholder="Say something to the lounge...">
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 group">
+                    <span class="text-[10px] font-black uppercase tracking-widest">Send</span>
+                    <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                </button>
+            </form>
+        </div>
+    </main>
 
     <script>
-        let isLogin = true;
+        const socket = io();
+        const profile = JSON.parse(localStorage.getItem('chat_profile'));
+        let privateTarget = null;
 
-        const authForm = document.getElementById('auth-form');
-        const toggleBtn = document.getElementById('toggle-mode');
-        const title = document.getElementById('auth-title');
-        const subtitle = document.getElementById('auth-subtitle');
-        const submitBtn = document.getElementById('submit-btn');
-        const usernameContainer = document.getElementById('username-container');
-        const profileContainer = document.getElementById('profile-container');
-        const errorMessage = document.getElementById('error-message');
+        // AUTH GUARD
+        if (!profile) window.location.href = '/';
 
-        // Toggle between Login and Signup
-        toggleBtn.onclick = () => {
-            isLogin = !isLogin;
-            title.innerText = isLogin ? "Welcome Back" : "Create Account";
-            subtitle.innerText = isLogin ? "Please sign in to your account" : "Join the lounge community today";
-            submitBtn.querySelector('span').innerText = isLogin ? "Sign In" : "Create Account";
-            toggleBtn.innerHTML = isLogin ? 
-                "Don't have an account? <span class='text-indigo-500 underline'>Sign Up</span>" : 
-                "Already have an account? <span class='text-indigo-500 underline'>Log In</span>";
-            
-            usernameContainer.classList.toggle('hidden', isLogin);
-            profileContainer.classList.toggle('hidden', isLogin);
-            errorMessage.classList.add('hidden');
-            
-            // Toggle required attributes
-            document.getElementById('username').required = !isLogin;
-            document.getElementById('age').required = !isLogin;
-            document.getElementById('gender').required = !isLogin;
-        };
+        // UI INITIALIZATION
+        document.getElementById('my-avatar').innerText = profile.username[0].toUpperCase();
+        document.getElementById('my-username').innerText = profile.username;
+        const myRankTag = document.getElementById('my-rank-display');
+        myRankTag.innerText = profile.rank || 'User';
+        myRankTag.className = `rank-tag ${getRankClass(profile.rank)}`;
 
-        // Simulated Database logic using LocalStorage
-        const getUsers = () => JSON.parse(localStorage.getItem('registered_users') || '[]');
-        const saveUser = (user) => {
-            const users = getUsers();
-            users.push(user);
-            localStorage.setItem('registered_users', JSON.stringify(users));
-        };
+        socket.emit('join', profile);
 
-        authForm.onsubmit = (e) => {
-            e.preventDefault();
-            errorMessage.classList.add('hidden');
-
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const users = getUsers();
-
-            if (isLogin) {
-                // LOGIN LOGIC
-                const user = users.find(u => u.email === email && u.password === password);
-                
-                if (user) {
-                    localStorage.setItem('chat_profile', JSON.stringify({
-                        username: user.username,
-                        email: user.email,
-                        age: user.age,
-                        gender: user.gender,
-                        uid: user.uid,
-                        joinedAt: Date.now()
-                    }));
-                    window.location.href = '/chat';
-                } else {
-                    showError("Invalid email or password.");
-                }
-            } else {
-                // SIGNUP LOGIC
-                const username = document.getElementById('username').value.trim();
-                const age = document.getElementById('age').value;
-                const gender = document.getElementById('gender').value;
-
-                // Check if email or username is taken
-                if (users.some(u => u.email === email)) {
-                    return showError("This email is already registered.");
-                }
-                if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-                    return showError("Username is already taken.");
-                }
-
-                const newUser = {
-                    email,
-                    password,
-                    username,
-                    age,
-                    gender,
-                    uid: 'u_' + Math.random().toString(36).substr(2, 9)
-                };
-
-                saveUser(newUser);
-                
-                // Log them in immediately
-                localStorage.setItem('chat_profile', JSON.stringify({
-                    ...newUser,
-                    joinedAt: Date.now()
-                }));
-                window.location.href = '/chat';
-            }
-        };
-
-        function showError(msg) {
-            errorMessage.innerText = msg;
-            errorMessage.classList.remove('hidden');
-            authForm.classList.add('error-shake');
-            setTimeout(() => authForm.classList.remove('error-shake'), 400);
+        function getRankClass(rank) {
+            if (!rank) return 'rank-user';
+            const r = rank.toLowerCase();
+            if (r === 'vip') return 'rank-vip';
+            if (r === 'admin' || r === 'staff' || r === 'mod') return 'rank-staff';
+            return 'rank-user';
         }
 
-        // Auto-redirect if session exists
-        window.onload = () => {
-            if (localStorage.getItem('chat_profile')) {
-                window.location.href = '/chat';
+        // SOCKET LISTENERS
+        socket.on('message', (data) => {
+            // Prevent showing public messages if we are in a PM view? 
+            // Usually, Lounge shows everything unless filtered. 
+            // To keep it simple, public always shows.
+            if (!privateTarget) appendMessage(data);
+        });
+
+        socket.on('privateMessage', (data) => {
+            // THE FIX: Allow you to see messages you SENT to others
+            // Logic: If the sender is ME, or the sender is the person I'm currently looking at
+            if (data.username === profile.username || data.username === privateTarget || data.target === profile.username) {
+                appendMessage(data, true);
             }
+        });
+
+        socket.on('userListUpdate', (users) => {
+            const countEl = document.getElementById('user-count');
+            const listEl = document.getElementById('user-list');
+            countEl.innerText = `${users.length} Online`;
+
+            listEl.innerHTML = users.map(u => `
+                <div onclick="enterPrivateChat('${u.username}')" class="group flex items-center gap-3 p-3 rounded-2xl hover:bg-white/5 transition-all cursor-pointer border border-transparent hover:border-white/5">
+                    <div class="relative shrink-0">
+                        <div class="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-500 border border-white/5 group-hover:border-indigo-500/50 transition-all">
+                            ${u.username[0].toUpperCase()}
+                        </div>
+                        <div class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-[3px] border-[#09090b]"></div>
+                    </div>
+                    <div class="flex-1 overflow-hidden">
+                        <div class="text-sm font-bold ${u.username === profile.username ? 'text-indigo-400' : 'text-zinc-200'} truncate">
+                            ${u.username} ${u.username === profile.username ? '<span class="text-[8px] opacity-50 ml-1">(You)</span>' : ''}
+                        </div>
+                        <div class="rank-tag ${getRankClass(u.rank)}" style="font-size: 7px; padding: 1px 4px; margin-top: 2px; display: inline-block;">
+                            ${u.rank || 'User'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        });
+
+        // CORE MESSAGE APPENDING
+        function appendMessage(data, isPrivate = false) {
+            const container = document.getElementById('message-container');
+            const div = document.createElement('div');
+            
+            if (data.system) {
+                div.className = "flex justify-center py-2";
+                div.innerHTML = `<span class="system-msg">${data.text}</span>`;
+            } else {
+                const time = data.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const rankClass = getRankClass(data.rank);
+                
+                // Unified Left-Aligned Layout
+                div.className = `flex gap-4 p-4 rounded-3xl message-bubble ${isPrivate ? 'bg-indigo-600/5 border-indigo-500/10' : ''}`;
+                div.innerHTML = `
+                    <div class="w-11 h-11 rounded-2xl bg-zinc-800 flex-shrink-0 flex items-center justify-center font-bold text-zinc-500 border border-white/5 shadow-inner text-lg">
+                        ${data.username[0].toUpperCase()}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-black text-white tracking-tight">${data.username}</span>
+                                <span class="rank-tag ${rankClass}">${data.rank || 'User'}</span>
+                                ${isPrivate ? '<span class="text-[8px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded uppercase ml-1 border border-indigo-500/20">Private</span>' : ''}
+                            </div>
+                            <span class="text-[10px] font-bold text-zinc-600 tracking-widest">${time}</span>
+                        </div>
+                        <p class="text-[13px] text-zinc-300 leading-relaxed break-words font-medium">${data.text}</p>
+                    </div>
+                `;
+            }
+            
+            container.appendChild(div);
+            // Smooth scroll to bottom
+            container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+        }
+
+        // PRIVATE MESSAGING LOGIC
+        function enterPrivateChat(username) {
+            if (username === profile.username) return;
+            privateTarget = username;
+            
+            // UI Updates
+            document.getElementById('pm-indicator').classList.remove('hidden');
+            document.getElementById('pm-target-name').innerText = username;
+            document.getElementById('msg-input').placeholder = `Message ${username} privately...`;
+            document.getElementById('chat-title').innerText = `Chatting with ${username}`;
+            
+            // Clear view for clean PM session (optional)
+            // document.getElementById('message-container').innerHTML = '';
+            // appendMessage({ system: true, text: `Private session with ${username} started` });
+        }
+
+        function exitPrivateChat() {
+            privateTarget = null;
+            document.getElementById('pm-indicator').classList.add('hidden');
+            document.getElementById('msg-input').placeholder = "Say something to the lounge...";
+            document.getElementById('chat-title').innerText = "Global Lounge";
+        }
+
+        // FORM SUBMISSION
+        document.getElementById('chat-form').onsubmit = (e) => {
+            e.preventDefault();
+            const input = document.getElementById('msg-input');
+            const text = input.value.trim();
+            
+            if (!text) return;
+
+            if (privateTarget) {
+                // Sending PM
+                socket.emit('privateMessage', { 
+                    target: privateTarget, 
+                    text: text,
+                    rank: profile.rank 
+                });
+            } else {
+                // Sending Global
+                socket.emit('sendMessage', {
+                    text: text,
+                    rank: profile.rank
+                });
+            }
+            
+            input.value = '';
         };
+
+        function logout() { 
+            localStorage.removeItem('chat_profile'); 
+            window.location.href = '/'; 
+        }
     </script>
 </body>
 </html>
