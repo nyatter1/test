@@ -3,18 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lounge | Chat</title>
+    <title>Lounge | Premium</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #09090b; color: #fafafa; overflow: hidden; }
         .glass { background: rgba(24, 24, 27, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .chat-height { height: calc(100vh - 160px); }
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
         
-        /* Rank Text Art Badges */
         .rank-badge {
             font-family: 'Courier New', Courier, monospace;
             font-size: 9px;
@@ -25,49 +23,33 @@
             display: inline-block;
             vertical-align: middle;
             letter-spacing: -0.5px;
+            text-transform: uppercase;
         }
-        .rank-owner { 
-            background: #ef4444; 
-            color: #fff; 
-            box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
-            border: 1px solid #fca5a5;
-        }
-        .rank-dev { 
-            background: #a855f7; 
-            color: #fff; 
-            box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
-            border: 1px solid #d8b4fe;
-        }
-        .rank-vip { 
-            background: #eab308; 
-            color: #000; 
-            box-shadow: 0 0 10px rgba(234, 179, 8, 0.2);
-            border: 1px solid #fde047;
-        }
+        .rank-dev { background: #a855f7; color: #fff; box-shadow: 0 0 10px rgba(168, 85, 247, 0.3); border: 1px solid #d8b4fe; }
+        .rank-helper { background: #10b981; color: #fff; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); border: 1px solid #6ee7b7; }
+        .rank-vip { background: #eab308; color: #000; border: 1px solid #fde047; }
 
-        #profile-overlay, #dm-modal, #inbox-overlay, #private-chat-overlay {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        #profile-overlay, #private-chat-overlay {
+            transition: all 0.25s ease-out;
             opacity: 0;
             pointer-events: none;
-            transform: scale(0.95);
+            transform: scale(0.98);
         }
-        #profile-overlay.active, #dm-modal.active, #inbox-overlay.active, #private-chat-overlay.active {
+        #profile-overlay.active, #private-chat-overlay.active {
             opacity: 1;
             pointer-events: auto;
             transform: scale(1);
         }
 
-        .main-blur { filter: blur(15px); pointer-events: none; transition: filter 0.3s ease; }
-
         .notification-dot {
-            width: 8px;
-            height: 8px;
+            width: 10px; height: 10px;
             background-color: #ef4444;
             border-radius: 50%;
-            box-shadow: 0 0 8px #ef4444;
+            border: 2px solid #09090b;
         }
-        
-        .msg-time { font-size: 9px; opacity: 0.4; font-weight: 600; }
+
+        .hover-actions { opacity: 0; transition: opacity 0.2s ease; }
+        .user-card:hover .hover-actions { opacity: 1; }
     </style>
 </head>
 <body class="h-screen flex p-4 gap-4 relative">
@@ -75,45 +57,49 @@
     <div id="main-content-wrapper" class="flex flex-1 gap-4 w-full h-full">
         <!-- Sidebar -->
         <aside class="w-80 glass rounded-3xl flex flex-col overflow-hidden shrink-0 hidden md:flex">
-            <div class="p-6 border-b border-zinc-800 flex items-center justify-between">
-                <h2 class="font-800 text-xl tracking-tighter text-indigo-400 uppercase italic">LOUNGE</h2>
-                <span id="user-count" class="bg-indigo-500/10 text-indigo-400 text-[10px] px-2 py-1 rounded-full font-bold">0 Online</span>
+            <div class="p-6 border-b border-zinc-800">
+                <h2 class="font-800 text-xl tracking-tighter text-indigo-400 uppercase italic mb-4">LOUNGE</h2>
+                <div class="relative">
+                    <input type="text" id="user-search" oninput="filterSidebar()" 
+                        class="w-full bg-zinc-900 border border-white/5 rounded-xl px-4 py-2 text-xs font-bold text-white placeholder:text-zinc-600 outline-none focus:border-indigo-500/50"
+                        placeholder="Search users...">
+                </div>
             </div>
             
             <div class="flex-1 overflow-y-auto p-4 space-y-6">
                 <div>
-                    <h3 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-3 px-2">Online — <span id="online-total">0</span></h3>
-                    <div id="online-list" class="space-y-2"></div>
+                    <h3 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-3 px-2">Online</h3>
+                    <div id="online-list" class="space-y-1"></div>
                 </div>
                 <div>
-                    <h3 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-3 px-2">Offline — <span id="offline-total">0</span></h3>
-                    <div id="offline-list" class="space-y-2 opacity-50 grayscale"></div>
+                    <h3 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-3 px-2">Offline</h3>
+                    <div id="offline-list" class="space-y-1 opacity-50 grayscale"></div>
                 </div>
             </div>
 
-            <div class="p-4 border-t border-zinc-800 bg-zinc-900/30">
-                <button onclick="logout()" class="w-full py-2 text-xs font-bold text-zinc-500 hover:text-red-400 transition-colors uppercase tracking-widest">Logout</button>
+            <div class="p-4 border-t border-zinc-800 bg-zinc-900/30 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-xs" id="my-avatar-char">?</div>
+                    <span class="text-xs font-bold" id="my-username-display">User</span>
+                </div>
+                <button onclick="logout()" class="text-[10px] font-black text-zinc-600 hover:text-red-400 uppercase tracking-widest">Exit</button>
             </div>
         </aside>
 
         <!-- Main Chat -->
         <main class="flex-1 glass rounded-3xl flex flex-col overflow-hidden relative">
-            <div class="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/20 backdrop-blur-md z-10">
+            <div class="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/20 backdrop-blur-md">
                 <div class="flex items-center gap-2 px-2">
-                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
                     <span class="text-[10px] font-black uppercase tracking-widest text-zinc-500">Public Lounge</span>
                 </div>
-                <button onclick="toggleInbox()" class="relative p-3 rounded-2xl bg-zinc-800/50 hover:bg-white/5 transition-all text-zinc-400 hover:text-white border border-white/5 group">
-                    <svg class="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                    <div id="global-notif-dot" class="hidden absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-zinc-900 animate-bounce"></div>
-                </button>
             </div>
 
-            <div id="message-container" class="flex-1 overflow-y-auto p-6 space-y-4 chat-height"></div>
+            <div id="message-container" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
             
             <div class="p-6 pt-0">
                 <form id="chat-form" class="flex gap-3 bg-zinc-900/50 p-2 rounded-2xl border border-zinc-800">
-                    <input type="text" id="msg-input" autocomplete="off" class="flex-1 bg-transparent border-none outline-none px-4 py-3 text-sm text-white" placeholder="Message public lounge...">
+                    <input type="text" id="msg-input" autocomplete="off" class="flex-1 bg-transparent border-none outline-none px-4 py-3 text-sm text-white" placeholder="Say something to everyone...">
                     <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white w-12 h-12 rounded-xl flex items-center justify-center transition-all">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14M12 5l7 7-7 7"/></svg>
                     </button>
@@ -122,98 +108,44 @@
         </main>
     </div>
 
-    <!-- Inbox Overlay -->
-    <div id="inbox-overlay" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
-        <div class="w-full max-w-md bg-zinc-900 rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col h-[500px]">
-            <div class="p-6 border-b border-white/5 flex justify-between items-center bg-zinc-800/30">
-                <h3 class="text-xs font-black uppercase tracking-[0.2em] text-zinc-500">Direct Messages</h3>
-                <button onclick="toggleInbox()" class="text-zinc-500 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
-            </div>
-            <div id="inbox-list" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
-        </div>
-    </div>
-
     <!-- Private Chat Overlay -->
-    <div id="private-chat-overlay" class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+    <div id="private-chat-overlay" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
         <div class="w-full max-w-md bg-zinc-900 rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col h-[550px]">
-            <div class="p-5 border-b border-white/5 flex items-center gap-4 bg-zinc-800/50">
-                <img id="pc-target-pfp" src="default.png" class="w-10 h-10 rounded-xl object-cover border border-white/10" alt="pfp">
-                <div class="flex-1">
-                    <h3 id="pc-target-name" class="text-sm font-black text-white uppercase italic">Username</h3>
-                    <p class="text-[9px] font-bold text-indigo-500 uppercase tracking-widest">Private Conversation</p>
+            <div class="p-5 border-b border-white/5 flex items-center justify-between bg-zinc-800/50">
+                <div class="flex items-center gap-3">
+                    <div id="pc-avatar" class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold">?</div>
+                    <div>
+                        <h3 id="pc-target-name" class="text-sm font-black text-white uppercase italic">Username</h3>
+                        <p class="text-[9px] font-bold text-indigo-500 uppercase">Private Message</p>
+                    </div>
                 </div>
-                <button onclick="closePrivateChat()" class="text-zinc-500 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                <button onclick="closePrivateChat()" class="text-zinc-500 hover:text-white"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2"/></svg></button>
             </div>
-            <div id="private-msg-container" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
+            <div id="private-msg-container" class="flex-1 overflow-y-auto p-6 space-y-4 bg-zinc-900/30"></div>
             <div class="p-5">
                 <form id="private-chat-form" class="flex gap-2 bg-zinc-800 p-2 rounded-2xl border border-zinc-700">
-                    <input type="text" id="private-msg-input" autocomplete="off" class="flex-1 bg-transparent border-none outline-none px-4 py-2 text-sm text-white" placeholder="Write a reply...">
-                    <button type="submit" class="bg-indigo-600 p-3 rounded-xl text-white hover:bg-indigo-500 transition-all"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+                    <input type="text" id="private-msg-input" autocomplete="off" class="flex-1 bg-transparent border-none outline-none px-4 py-2 text-sm text-white" placeholder="Reply privately...">
+                    <button type="submit" class="bg-indigo-600 p-3 rounded-xl text-white hover:bg-indigo-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke-width="2.5"/></svg></button>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- User Context Menu -->
-    <div id="user-context-menu" class="hidden fixed glass border border-white/10 rounded-2xl shadow-2xl overflow-hidden w-48 z-[100]">
-        <div class="p-2 space-y-1">
-            <button id="view-profile-btn" class="w-full text-left px-4 py-3 text-xs font-bold text-zinc-300 hover:bg-indigo-600 hover:text-white rounded-xl transition-all flex items-center gap-2">View Profile</button>
-            <button id="send-dm-btn" class="w-full text-left px-4 py-3 text-xs font-bold text-zinc-300 hover:bg-indigo-600 hover:text-white rounded-xl transition-all flex items-center gap-2">Message</button>
-        </div>
-    </div>
-
-    <!-- DM Modal (Composition) -->
-    <div id="dm-modal" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-        <div class="w-full max-w-sm bg-zinc-900 rounded-[2.5rem] border border-white/10 p-8 text-center shadow-2xl">
-            <img id="dm-pfp" src="default.png" class="w-16 h-16 rounded-2xl mx-auto mb-4 border border-indigo-500/50" alt="pfp">
-            <h3 id="dm-target-name-modal" class="text-xl font-800 text-white mb-6 uppercase italic tracking-tighter">New Message</h3>
-            <textarea id="dm-text" placeholder="Type your private message here..." class="w-full h-32 bg-zinc-800 border border-zinc-700 rounded-2xl p-4 text-sm text-white outline-none focus:border-indigo-500 transition-all resize-none mb-4"></textarea>
-            <div class="flex gap-3">
-                <button onclick="document.getElementById('dm-modal').classList.remove('active')" class="flex-1 py-3 rounded-xl bg-zinc-800 text-zinc-500 font-bold text-xs uppercase tracking-widest">Discard</button>
-                <button onclick="sendPrivateMessage()" class="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-bold text-xs uppercase tracking-widest">Send</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Profile View -->
-    <div id="profile-overlay" class="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-        <div class="w-full max-w-sm bg-zinc-900 rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl relative">
-            <button onclick="closeProfile()" class="absolute top-4 right-4 z-10 bg-black/20 hover:bg-black/40 p-2 rounded-full text-white/50 hover:text-white transition-all">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-            <div class="h-32 bg-indigo-900/40 w-full overflow-hidden">
-                <div class="w-full h-full bg-gradient-to-br from-indigo-600/20 to-zinc-900"></div>
-            </div>
+    <!-- Profile View Overlay -->
+    <div id="profile-overlay" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+        <div class="w-full max-w-sm bg-zinc-900 rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl">
+            <div class="h-24 bg-gradient-to-r from-indigo-600 to-purple-600 w-full"></div>
             <div class="px-6 pb-8 text-center -mt-12">
                 <div class="inline-block p-1 bg-zinc-900 rounded-3xl mb-4">
-                    <img id="profile-pfp" src="default.png" class="w-24 h-24 rounded-[1.8rem] border-4 border-zinc-900 object-cover shadow-xl" alt="pfp">
+                    <div id="p-avatar" class="w-24 h-24 rounded-[1.8rem] bg-indigo-500 flex items-center justify-center text-3xl font-black text-white">?</div>
                 </div>
                 <h3 id="p-username" class="text-2xl font-800 tracking-tighter text-white mb-1 uppercase italic">Username</h3>
-                <div id="p-ranks" class="mb-4 h-6"></div>
+                <div id="p-ranks" class="mb-6"></div>
                 
-                <div class="grid grid-cols-2 gap-3 mb-6">
-                    <div class="bg-zinc-800/50 p-4 rounded-3xl border border-white/5 text-center">
-                        <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] mb-1">Age</p>
-                        <p id="p-age" class="text-sm font-black text-indigo-400">??</p>
-                    </div>
-                    <div class="bg-zinc-800/50 p-4 rounded-3xl border border-white/5 text-center">
-                        <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] mb-1">Gender</p>
-                        <p id="p-gender" class="text-sm font-black text-indigo-400">??</p>
-                    </div>
+                <div class="space-y-3 mb-6">
+                    <button onclick="initiateDMFromProfile()" class="w-full bg-indigo-600 p-4 rounded-2xl text-[10px] font-black text-white uppercase tracking-[0.3em] hover:bg-indigo-500 transition-all">Send Message</button>
+                    <button onclick="closeProfile()" class="w-full bg-zinc-800 p-4 rounded-2xl text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em] hover:bg-zinc-700 transition-all">Close</button>
                 </div>
-
-                <div class="space-y-3 mb-6 text-left px-2">
-                    <div class="flex justify-between items-center border-b border-white/5 pb-2">
-                        <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-[0.2em]">Member Since</span>
-                        <span id="p-joined" class="text-[9px] font-black text-zinc-300 uppercase">Jan 2026</span>
-                    </div>
-                    <div class="flex justify-between items-center border-b border-white/5 pb-2">
-                        <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-[0.2em]">Last Online</span>
-                        <span id="p-lastseen" class="text-[9px] font-black text-green-400 uppercase">Just now</span>
-                    </div>
-                </div>
-
-                <button onclick="initiateDMFromProfile()" class="w-full bg-indigo-600 p-4 rounded-2xl text-[10px] font-black text-white uppercase tracking-[0.3em] hover:bg-indigo-500 transition-all shadow-lg">Message User</button>
             </div>
         </div>
     </div>
@@ -225,48 +157,39 @@
 
         let onlineUsers = [];
         let offlineUsers = [];
-        let conversations = JSON.parse(localStorage.getItem(`dms_${profile.username}`) || '{}');
         let dmTarget = null;
-        let unreadFrom = new Set();
+        let conversations = JSON.parse(localStorage.getItem(`dms_${profile.username}`) || '{}');
 
-        const formatTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        
-        const getRankHtml = (username) => {
-            const userLower = username.toLowerCase();
-            // Owner rank
-            if (userLower === 'luna_midnight' || userLower === 'owner') {
-                return '<span class="rank-badge rank-owner">| OWNER |</span>';
-            }
-            // Developer rank
-            if (userLower === 'dev' || userLower === 'system') {
-                return '<span class="rank-badge rank-dev">| DEVELOPER |</span>';
-            }
-            // Default VIP rank for everyone else
+        document.getElementById('my-username-display').innerText = profile.username;
+        document.getElementById('my-avatar-char').innerText = profile.username[0].toUpperCase();
+
+        const getRankHtml = (name) => {
+            const n = name.toLowerCase();
+            if (n === 'dev') return '<span class="rank-badge rank-dev">| DEVELOPER |</span>';
+            if (n === 'fluffy') return '<span class="rank-badge rank-helper">| SITE-HELPER |</span>';
             return '<span class="rank-badge rank-vip">| VIP |</span>';
         };
 
         socket.emit('join', profile);
 
-        // --- GLOBAL MESSAGES ---
+        // --- GLOBAL CHAT ---
         socket.on('message', (data) => {
             const container = document.getElementById('message-container');
             const div = document.createElement('div');
-            const timestamp = formatTime();
-
+            
             if (data.system) {
-                div.innerHTML = `<div class="text-center py-2"><span class="text-[10px] text-zinc-600 uppercase font-black tracking-widest">${data.text}</span></div>`;
+                div.innerHTML = `<div class="text-center py-2"><span class="text-[9px] text-zinc-600 uppercase font-black tracking-widest">${data.text}</span></div>`;
             } else {
-                const isMe = data.username === profile.username;
-                div.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
+                div.className = `flex justify-start`; // All messages on the left
                 div.innerHTML = `
-                    <div class="flex gap-3 max-w-[80%] ${isMe ? 'flex-row-reverse' : ''}">
-                        <img src="default.png" class="w-9 h-9 rounded-xl shrink-0 border border-white/10 cursor-pointer hover:scale-105 transition-transform" onclick="showUserOptions(event, '${data.username}')">
-                        <div class="${isMe ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-200'} p-3.5 rounded-2xl shadow-xl border border-white/5 relative">
+                    <div class="flex gap-3 max-w-[90%]">
+                        <div class="w-9 h-9 rounded-xl shrink-0 bg-zinc-800 flex items-center justify-center font-bold text-xs border border-white/5">${data.username[0].toUpperCase()}</div>
+                        <div class="bg-zinc-800/50 p-3.5 rounded-2xl border border-white/5">
                             <div class="flex items-center gap-2 mb-1">
-                                <span class="text-[9px] font-black opacity-50 uppercase tracking-tight italic">${data.username} ${getRankHtml(data.username)}</span>
-                                <span class="msg-time">${timestamp}</span>
+                                <span class="text-[10px] font-black text-zinc-400 uppercase italic">${data.username} ${getRankHtml(data.username)}</span>
+                                <span class="text-[8px] opacity-30 font-bold">${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                             </div>
-                            <p class="text-sm leading-relaxed">${data.text}</p>
+                            <p class="text-sm leading-relaxed text-zinc-200">${data.text}</p>
                         </div>
                     </div>
                 `;
@@ -275,189 +198,105 @@
             container.scrollTop = container.scrollHeight;
         });
 
-        // --- USER LIST UPDATE ---
+        // --- USER LIST & SEARCH ---
         socket.on('userListUpdate', (users) => {
             onlineUsers = users;
-            let registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
-            users.forEach(u => {
-                if (!registry.find(r => r.username === u.username)) registry.push(u);
-            });
+            const registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
+            users.forEach(u => { if(!registry.some(r => r.username === u.username)) registry.push(u); });
             localStorage.setItem('user_registry', JSON.stringify(registry));
             offlineUsers = registry.filter(r => !users.some(u => u.username === r.username));
-            updateSidebarUI();
+            filterSidebar();
         });
 
-        function updateSidebarUI() {
-            document.getElementById('online-total').innerText = onlineUsers.length;
-            document.getElementById('offline-total').innerText = offlineUsers.length;
-            document.getElementById('user-count').innerText = `${onlineUsers.length} Online`;
+        function filterSidebar() {
+            const q = document.getElementById('user-search').value.toLowerCase();
+            const filterFn = u => u.username.toLowerCase().includes(q);
+            
+            renderList('online-list', onlineUsers.filter(filterFn), true);
+            renderList('offline-list', offlineUsers.filter(filterFn), false);
+        }
 
-            const renderUser = (u, isOnline) => `
-                <div onclick="showUserOptions(event, '${u.username}')" class="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/50 border border-white/5 hover:bg-zinc-800 transition-all cursor-pointer group">
-                    <img src="default.png" class="w-9 h-9 rounded-xl object-cover shrink-0">
-                    <div class="flex flex-col min-w-0">
-                        <span class="text-xs font-bold truncate text-zinc-200">${u.username} ${getRankHtml(u.username)}</span>
-                        <span class="text-[8px] font-black text-zinc-500 uppercase tracking-widest">${isOnline ? 'Online' : 'Offline'}</span>
+        function renderList(id, users, isOnline) {
+            document.getElementById(id).innerHTML = users.map(u => `
+                <div class="user-card flex items-center justify-between p-3 rounded-2xl hover:bg-white/5 transition-all group cursor-default">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-9 h-9 rounded-xl bg-zinc-800 flex items-center justify-center font-bold text-xs shrink-0">${u.username[0].toUpperCase()}</div>
+                        <div class="truncate">
+                            <div class="text-xs font-bold text-zinc-200 truncate">${u.username}</div>
+                            <div class="text-[8px] font-black text-zinc-600 uppercase tracking-tighter">${isOnline ? 'Active' : 'Offline'}</div>
+                        </div>
+                    </div>
+                    <div class="hover-actions flex items-center gap-1">
+                        <button onclick="openProfile('${u.username}')" class="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-width="2"/></svg>
+                        </button>
+                        ${u.username !== profile.username ? `
+                        <button onclick="openPrivateChat('${u.username}')" class="p-2 bg-indigo-600/20 hover:bg-indigo-600 rounded-lg text-indigo-400 hover:text-white transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" stroke-width="2"/></svg>
+                        </button>` : ''}
                     </div>
                 </div>
-            `;
-            document.getElementById('online-list').innerHTML = onlineUsers.map(u => renderUser(u, true)).join('');
-            document.getElementById('offline-list').innerHTML = offlineUsers.map(u => renderUser(u, false)).join('');
+            `).join('');
         }
 
-        // --- PRIVATE MESSAGING LOGIC ---
+        // --- PRIVATE CHAT ENGINE ---
         socket.on('privateMessage', (data) => {
-            const sender = data.username;
-            const target = data.target;
-            const otherUser = sender === profile.username ? target : sender;
-
-            if (!conversations[otherUser]) conversations[otherUser] = [];
+            const partner = data.username === profile.username ? data.target : data.username;
+            if (!conversations[partner]) conversations[partner] = [];
             
-            const messageObj = { ...data, time: formatTime() };
-            conversations[otherUser].push(messageObj);
-            
-            // Notification logic for receiver (if I am NOT the sender)
-            if (sender !== profile.username && dmTarget !== otherUser) {
-                unreadFrom.add(otherUser);
-                document.getElementById('global-notif-dot').classList.remove('hidden');
-            }
-
+            const msg = { ...data, time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) };
+            conversations[partner].push(msg);
             localStorage.setItem(`dms_${profile.username}`, JSON.stringify(conversations));
-            
-            // UI Update: Only append if currently viewing THIS conversation
-            if (dmTarget === otherUser && document.getElementById('private-chat-overlay').classList.contains('active')) {
-                appendPrivateMessage(messageObj);
-            }
-            
-            updateInboxUI();
+
+            if (dmTarget === partner) appendPrivateMessage(msg);
         });
-
-        function updateInboxUI() {
-            const list = document.getElementById('inbox-list');
-            const userKeys = Object.keys(conversations).sort((a, b) => {
-                if (unreadFrom.has(a) && !unreadFrom.has(b)) return -1;
-                if (!unreadFrom.has(a) && unreadFrom.has(b)) return 1;
-                return 0;
-            });
-
-            if (userKeys.length === 0) {
-                list.innerHTML = `<div class="text-center py-20 opacity-20"><p class="text-[10px] font-black uppercase tracking-[0.2em]">Inbox Empty</p></div>`;
-                return;
-            }
-
-            list.innerHTML = userKeys.map(user => {
-                const history = conversations[user];
-                const lastMsg = history[history.length - 1];
-                return `
-                    <div onclick="openPrivateChat('${user}')" class="flex items-center gap-4 p-4 rounded-[2rem] bg-zinc-800/40 border border-white/5 hover:bg-indigo-600/10 transition-all cursor-pointer group relative">
-                        <div class="relative flex flex-shrink-0 items-center justify-center">
-                            <img src="default.png" class="w-12 h-12 rounded-2xl object-cover">
-                            ${unreadFrom.has(user) ? '<div class="notification-dot absolute -top-1 -right-1 border-2 border-zinc-900"></div>' : ''}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex justify-between items-center mb-0.5">
-                                <span class="text-xs font-black text-white uppercase italic truncate pr-2">${user}</span>
-                                <span class="text-[9px] opacity-30 flex-shrink-0">${lastMsg?.time || ''}</span>
-                            </div>
-                            <p class="text-[11px] text-zinc-500 truncate font-medium">${lastMsg?.username === profile.username ? 'You: ' : ''}${lastMsg?.text || 'Sent an attachment'}</p>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
 
         function openPrivateChat(user) {
             dmTarget = user;
-            unreadFrom.delete(user);
-            if (unreadFrom.size === 0) document.getElementById('global-notif-dot').classList.add('hidden');
-            
             document.getElementById('pc-target-name').innerText = user;
-            document.getElementById('inbox-overlay').classList.remove('active');
-            document.getElementById('main-content-wrapper').classList.add('main-blur');
-            document.getElementById('private-chat-overlay').classList.add('active');
-            
-            const container = document.getElementById('private-msg-container');
-            container.innerHTML = '';
+            document.getElementById('pc-avatar').innerText = user[0].toUpperCase();
+            document.getElementById('private-msg-container').innerHTML = '';
             (conversations[user] || []).forEach(appendPrivateMessage);
-            updateInboxUI();
+            document.getElementById('private-chat-overlay').classList.add('active');
         }
 
         function appendPrivateMessage(data) {
             const container = document.getElementById('private-msg-container');
             const div = document.createElement('div');
             const isMe = data.username === profile.username;
-            div.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
+            div.className = `flex justify-start`; // Align PMs to left as requested
             div.innerHTML = `
-                <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[85%]">
-                    <div class="${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-zinc-800 text-zinc-200 rounded-bl-none'} p-4 rounded-2xl text-xs border border-white/5 shadow-lg">
+                <div class="flex flex-col items-start max-w-[85%]">
+                    <div class="${isMe ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-300'} p-3 rounded-2xl text-xs border border-white/5">
+                        <span class="block text-[8px] font-black opacity-50 mb-1 uppercase">${data.username}</span>
                         ${data.text}
                     </div>
-                    <span class="text-[8px] font-bold text-zinc-600 mt-1 uppercase tracking-widest">${data.time || formatTime()}</span>
+                    <span class="text-[8px] font-bold text-zinc-600 mt-1 uppercase">${data.time || ''}</span>
                 </div>
             `;
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         }
 
-        // --- CORE UI ACTIONS ---
-        function showUserOptions(event, username) {
-            event.stopPropagation();
-            const menu = document.getElementById('user-context-menu');
-            menu.style.top = `${event.clientY}px`;
-            menu.style.left = `${event.clientX}px`;
-            menu.classList.remove('hidden');
-            document.getElementById('view-profile-btn').onclick = () => { openProfile(username); menu.classList.add('hidden'); };
-            document.getElementById('send-dm-btn').onclick = () => { openDMModal(username); menu.classList.add('hidden'); };
-            const hide = () => { menu.classList.add('hidden'); document.removeEventListener('click', hide); };
-            setTimeout(() => document.addEventListener('click', hide), 10);
-        }
+        function closePrivateChat() { dmTarget = null; document.getElementById('private-chat-overlay').classList.remove('active'); }
 
+        // --- PROFILE LOGIC ---
         function openProfile(username) {
-            const registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
-            const user = registry.find(u => u.username === username) || { username };
-            const isOnline = onlineUsers.some(u => u.username === username);
-            document.getElementById('p-username').innerText = user.username;
-            document.getElementById('p-ranks').innerHTML = getRankHtml(user.username);
-            document.getElementById('p-age').innerText = user.age || '??';
-            document.getElementById('p-gender').innerText = user.gender || '??';
-            document.getElementById('p-joined').innerText = user.joined || 'Jan 2026';
-            const lastSeen = document.getElementById('p-lastseen');
-            lastSeen.innerText = isOnline ? 'Just now' : 'Recently';
-            lastSeen.className = isOnline ? 'text-[9px] font-black text-green-400 uppercase' : 'text-[9px] font-black text-zinc-500 uppercase';
+            document.getElementById('p-username').innerText = username;
+            document.getElementById('p-avatar').innerText = username[0].toUpperCase();
+            document.getElementById('p-ranks').innerHTML = getRankHtml(username);
             document.getElementById('profile-overlay').classList.add('active');
         }
 
         function closeProfile() { document.getElementById('profile-overlay').classList.remove('active'); }
-        function closePrivateChat() { 
-            document.getElementById('private-chat-overlay').classList.remove('active'); 
-            document.getElementById('main-content-wrapper').classList.remove('main-blur');
-            dmTarget = null;
-        }
-        function toggleInbox() { document.getElementById('inbox-overlay').classList.toggle('active'); updateInboxUI(); }
-
-        function openDMModal(username) {
-            dmTarget = username;
-            document.getElementById('dm-target-name-modal').innerText = `Message ${username}`;
-            document.getElementById('dm-modal').classList.add('active');
-        }
-
-        function sendPrivateMessage() {
-            const text = document.getElementById('dm-text').value.trim();
-            if (!text || !dmTarget) return;
-            // Emit to server
-            socket.emit('privateMessage', { target: dmTarget, text, username: profile.username });
-            
-            document.getElementById('dm-modal').classList.remove('active');
-            document.getElementById('dm-text').value = '';
-            openPrivateChat(dmTarget);
-        }
 
         function initiateDMFromProfile() {
-            const username = document.getElementById('p-username').innerText;
+            const user = document.getElementById('p-username').innerText;
             closeProfile();
-            openDMModal(username);
+            if (user !== profile.username) openPrivateChat(user);
         }
 
+        // --- FORMS ---
         document.getElementById('chat-form').onsubmit = (e) => {
             e.preventDefault();
             const input = document.getElementById('msg-input');
