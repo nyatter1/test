@@ -7,109 +7,117 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Store active users in memory
-// Map of socket.id -> { username, age, gender, joined, rank }
-const users = new Map();
+// Middleware to serve static files from the root directory
+// This ensures index.html, chat_app.html, etc., are accessible
+app.use(express.static(__dirname));
 
-// Serve static files from the 'public' directory
-app.use(express.static(path.join(__dirname, 'public')));
-
+// Route for the main landing page (Signup/Login)
 app.get('/', (req, res) => {
-    // Fixed path to point directly to public/index.html
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Route for the chat interface
 app.get('/chat', (req, res) => {
-    // Fixed path to point directly to public/chat_app.html
-    res.sendFile(path.join(__dirname, 'public', 'chat_app.html'));
+    res.sendFile(path.join(__dirname, 'chat_app.html'));
 });
+
+// In-memory store for active users
+let onlineUsers = [];
 
 io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
+    console.log('A user connected:', socket.id);
 
-    // Join room and set profile
+    // Handle user joining with their profile data
     socket.on('join', (profile) => {
-        users.set(socket.id, {
-            ...profile,
-            id: socket.id,
-            joined: profile.joined || new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-        });
+        if (!profile || !profile.username) return;
 
-        // Broadcast to everyone that a user joined
+        // Store user data associated with the socket ID
+        const userData = {
+            id: socket.id,
+            username: profile.username,
+            age: profile.age,
+            gender: profile.gender,
+            uid: profile.uid
+        };
+
+        onlineUsers.push(userData);
+
+        // Notify everyone that a new user joined
         io.emit('message', {
             system: true,
-            text: `${profile.username} entered the lounge`
+            text: `${profile.username} has entered the lounge`,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
 
-        // Send updated user list to everyone
-        updateUserList();
+        // Broadcast the updated user list to all clients
+        io.emit('userListUpdate', onlineUsers);
     });
 
-    // Public Message Handler
+    // Handle incoming chat messages (Public)
     socket.on('sendMessage', (data) => {
-        const user = users.get(socket.id);
-        if (user) {
+        const user = onlineUsers.find(u => u.id === socket.id);
+        if (user && data.text) {
             io.emit('message', {
                 username: user.username,
-                text: typeof data === 'string' ? data : data.text,
+                text: data.text,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 system: false
             });
         }
     });
 
-    // Private Message Handler
+    // Handle Private Messages (DMs)
     socket.on('privateMessage', (data) => {
-        const sender = users.get(socket.id);
-        if (!sender) return;
+        const sender = onlineUsers.find(u => u.id === socket.id);
+        if (!sender || !data.target || !data.text) return;
 
-        const targetUsername = data.target;
-        const messageText = data.text;
+        // Find the recipient in the online users list
+        const recipient = onlineUsers.find(u => 
+            u.username.toLowerCase() === data.target.toLowerCase()
+        );
 
-        // Find the target user's socket(s)
-        let targetSocketId = null;
-        for (const [id, user] of users.entries()) {
-            if (user.username === targetUsername) {
-                targetSocketId = id;
-                break;
-            }
+        if (recipient) {
+            const dmPayload = {
+                username: sender.username,
+                text: data.text,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                isPrivate: true
+            };
+
+            // Send specifically to the recipient's socket ID
+            io.to(recipient.id).emit('privateMessage', dmPayload);
+        } else {
+            // Notify sender if user is offline
+            socket.emit('message', {
+                system: true,
+                text: `User ${data.target} is currently offline.`,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
         }
-
-        const payload = {
-            username: sender.username,
-            target: targetUsername,
-            text: messageText,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-
-        // 1. Send to the receiver (if online)
-        if (targetSocketId) {
-            io.to(targetSocketId).emit('privateMessage', payload);
-        }
-
-        // 2. ALWAYS send back to the sender so they see their own message
-        socket.emit('privateMessage', payload);
     });
 
-    // Handle Disconnect
+    // Handle disconnection
     socket.on('disconnect', () => {
-        const user = users.get(socket.id);
-        if (user) {
+        const userIndex = onlineUsers.findIndex(u => u.id === socket.id);
+        if (userIndex !== -1) {
+            const user = onlineUsers[userIndex];
+            onlineUsers.splice(userIndex, 1);
+
+            // Notify others
             io.emit('message', {
                 system: true,
-                text: `${user.username} left the lounge`
+                text: `${user.username} has left the lounge`,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             });
-            users.delete(socket.id);
-            updateUserList();
-        }
-    });
 
-    function updateUserList() {
-        const userArray = Array.from(users.values());
-        io.emit('userListUpdate', userArray);
-    }
+            // Update user list for everyone
+            io.emit('userListUpdate', onlineUsers);
+        }
+        console.log('User disconnected:', socket.id);
+    });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Lounge Server running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
