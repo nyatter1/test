@@ -42,16 +42,14 @@
         .main-blur { filter: blur(15px); pointer-events: none; transition: filter 0.3s ease; }
 
         .notification-dot {
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             background-color: #ef4444;
             border-radius: 50%;
-            border: 2px solid #18181b;
-            box-shadow: 0 0 12px #ef4444;
+            box-shadow: 0 0 8px #ef4444;
         }
+        
+        .msg-time { font-size: 9px; opacity: 0.4; font-weight: 600; }
     </style>
 </head>
 <body class="h-screen flex p-4 gap-4 relative">
@@ -63,7 +61,20 @@
                 <h2 class="font-800 text-xl tracking-tighter text-indigo-400 uppercase italic">LOUNGE</h2>
                 <span id="user-count" class="bg-indigo-500/10 text-indigo-400 text-[10px] px-2 py-1 rounded-full font-bold">0 Online</span>
             </div>
-            <div class="flex-1 overflow-y-auto p-4 space-y-2" id="user-list"></div>
+            
+            <div class="flex-1 overflow-y-auto p-4 space-y-6">
+                <!-- Online Section -->
+                <div>
+                    <h3 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-3 px-2">Online — <span id="online-total">0</span></h3>
+                    <div id="online-list" class="space-y-2"></div>
+                </div>
+                <!-- Offline Section -->
+                <div>
+                    <h3 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-3 px-2">Offline — <span id="offline-total">0</span></h3>
+                    <div id="offline-list" class="space-y-2 opacity-50 grayscale"></div>
+                </div>
+            </div>
+
             <div class="p-4 border-t border-zinc-800 bg-zinc-900/30">
                 <button onclick="logout()" class="w-full py-2 text-xs font-bold text-zinc-500 hover:text-red-400 transition-colors uppercase tracking-widest">Logout</button>
             </div>
@@ -78,7 +89,7 @@
                 </div>
                 <button onclick="toggleInbox()" class="relative p-3 rounded-2xl bg-zinc-800/50 hover:bg-white/5 transition-all text-zinc-400 hover:text-white border border-white/5 group">
                     <svg class="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                    <div id="notif-dot" class="hidden notification-dot animate-pulse"></div>
+                    <div id="global-notif-dot" class="hidden absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-zinc-900 animate-bounce"></div>
                 </button>
             </div>
 
@@ -95,36 +106,22 @@
         </main>
     </div>
 
-    <!-- Context Menu -->
-    <div id="user-context-menu" class="hidden fixed glass border border-white/10 rounded-2xl shadow-2xl overflow-hidden w-48 z-[100]">
-        <div class="p-2 space-y-1">
-            <button id="view-profile-btn" class="w-full text-left px-4 py-3 text-xs font-bold text-zinc-300 hover:bg-indigo-600 hover:text-white rounded-xl transition-all flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                View Profile
-            </button>
-            <button id="send-dm-btn" class="w-full text-left px-4 py-3 text-xs font-bold text-zinc-300 hover:bg-indigo-600 hover:text-white rounded-xl transition-all flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-                Send Message
-            </button>
-        </div>
-    </div>
-
     <!-- Inbox Overlay -->
     <div id="inbox-overlay" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
         <div class="w-full max-w-md bg-zinc-900 rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col h-[500px]">
             <div class="p-6 border-b border-white/5 flex justify-between items-center bg-zinc-800/30">
-                <h3 class="text-xs font-black uppercase tracking-[0.2em] text-zinc-500">Recent Activity</h3>
+                <h3 class="text-xs font-black uppercase tracking-[0.2em] text-zinc-500">Direct Messages</h3>
                 <button onclick="toggleInbox()" class="text-zinc-500 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
             </div>
             <div id="inbox-list" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
         </div>
     </div>
 
-    <!-- Blurred Private Chat -->
+    <!-- Private Chat Overlay -->
     <div id="private-chat-overlay" class="fixed inset-0 z-[70] flex items-center justify-center p-4">
         <div class="w-full max-w-md bg-zinc-900 rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col h-[550px]">
             <div class="p-5 border-b border-white/5 flex items-center gap-4 bg-zinc-800/50">
-                <img id="pc-target-pfp" src="default.png" class="w-10 h-10 rounded-xl object-cover border border-white/10" alt="pfp" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=default'">
+                <img id="pc-target-pfp" src="default.png" class="w-10 h-10 rounded-xl object-cover border border-white/10" alt="pfp">
                 <div class="flex-1">
                     <h3 id="pc-target-name" class="text-sm font-black text-white uppercase italic">Username</h3>
                     <p class="text-[9px] font-bold text-indigo-500 uppercase tracking-widest">Private Conversation</p>
@@ -141,7 +138,15 @@
         </div>
     </div>
 
-    <!-- DM Composition Modal -->
+    <!-- User Context Menu -->
+    <div id="user-context-menu" class="hidden fixed glass border border-white/10 rounded-2xl shadow-2xl overflow-hidden w-48 z-[100]">
+        <div class="p-2 space-y-1">
+            <button id="view-profile-btn" class="w-full text-left px-4 py-3 text-xs font-bold text-zinc-300 hover:bg-indigo-600 hover:text-white rounded-xl transition-all flex items-center gap-2">View Profile</button>
+            <button id="send-dm-btn" class="w-full text-left px-4 py-3 text-xs font-bold text-zinc-300 hover:bg-indigo-600 hover:text-white rounded-xl transition-all flex items-center gap-2">Message</button>
+        </div>
+    </div>
+
+    <!-- DM Modal (Composition) -->
     <div id="dm-modal" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
         <div class="w-full max-w-sm bg-zinc-900 rounded-[2.5rem] border border-white/10 p-8 text-center shadow-2xl">
             <img id="dm-pfp" src="default.png" class="w-16 h-16 rounded-2xl mx-auto mb-4 border border-indigo-500/50" alt="pfp">
@@ -149,7 +154,7 @@
             <textarea id="dm-text" placeholder="Type your private message here..." class="w-full h-32 bg-zinc-800 border border-zinc-700 rounded-2xl p-4 text-sm text-white outline-none focus:border-indigo-500 transition-all resize-none mb-4"></textarea>
             <div class="flex gap-3">
                 <button onclick="document.getElementById('dm-modal').classList.remove('active')" class="flex-1 py-3 rounded-xl bg-zinc-800 text-zinc-500 font-bold text-xs uppercase tracking-widest">Discard</button>
-                <button onclick="sendPrivateMessage()" class="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-bold text-xs uppercase tracking-widest">Send Direct</button>
+                <button onclick="sendPrivateMessage()" class="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-bold text-xs uppercase tracking-widest">Send</button>
             </div>
         </div>
     </div>
@@ -165,17 +170,17 @@
             </div>
             <div class="px-6 pb-8 text-center -mt-12">
                 <div class="inline-block p-1 bg-zinc-900 rounded-3xl mb-4">
-                    <img id="profile-pfp" src="default.png" class="w-24 h-24 rounded-[1.8rem] border-4 border-zinc-900 object-cover shadow-xl" alt="pfp" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=default'">
+                    <img id="profile-pfp" src="default.png" class="w-24 h-24 rounded-[1.8rem] border-4 border-zinc-900 object-cover shadow-xl" alt="pfp">
                 </div>
                 <h3 id="p-username" class="text-2xl font-800 tracking-tighter text-white mb-1 uppercase italic">Username</h3>
                 <div id="p-ranks" class="mb-4 h-6"></div>
                 
                 <div class="grid grid-cols-2 gap-3 mb-6">
-                    <div class="bg-zinc-800/50 p-4 rounded-3xl border border-white/5">
+                    <div class="bg-zinc-800/50 p-4 rounded-3xl border border-white/5 text-center">
                         <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] mb-1">Age</p>
                         <p id="p-age" class="text-sm font-black text-indigo-400">??</p>
                     </div>
-                    <div class="bg-zinc-800/50 p-4 rounded-3xl border border-white/5">
+                    <div class="bg-zinc-800/50 p-4 rounded-3xl border border-white/5 text-center">
                         <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] mb-1">Gender</p>
                         <p id="p-gender" class="text-sm font-black text-indigo-400">??</p>
                     </div>
@@ -192,7 +197,7 @@
                     </div>
                 </div>
 
-                <button onclick="initiateDMFromProfile()" class="w-full bg-indigo-600 p-4 rounded-2xl text-[10px] font-black text-white uppercase tracking-[0.3em] hover:bg-indigo-500 transition-all active:scale-95 shadow-lg shadow-indigo-600/20">Message User</button>
+                <button onclick="initiateDMFromProfile()" class="w-full bg-indigo-600 p-4 rounded-2xl text-[10px] font-black text-white uppercase tracking-[0.3em] hover:bg-indigo-500 transition-all shadow-lg">Message User</button>
             </div>
         </div>
     </div>
@@ -200,32 +205,31 @@
     <script>
         const socket = io();
         const profile = JSON.parse(localStorage.getItem('chat_profile'));
-        
-        // Setup initial timestamps for self if not exists
-        if (profile && !profile.joined) {
-            profile.joined = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-            localStorage.setItem('chat_profile', JSON.stringify(profile));
-        }
+        if (!profile) window.location.href = '/';
 
-        let currentOnlineUsers = [];
+        let onlineUsers = [];
+        let offlineUsers = [];
+        let conversations = JSON.parse(localStorage.getItem(`dms_${profile.username}`) || '{}');
         let dmTarget = null;
-        let conversations = {};
+        let unreadFrom = new Set();
 
+        const formatTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
         const getRankHtml = (username) => {
-            if (!username) return '';
             const userLower = username.toLowerCase();
             if (userLower === 'luna_midnight' || userLower === 'owner') return '<span class="rank-badge rank-owner">Owner</span>';
             if (userLower === 'dev' || userLower === 'system') return '<span class="rank-badge rank-dev">Dev</span>';
             return '';
         };
 
-        if (!profile) window.location.href = '/';
         socket.emit('join', profile);
 
-        // --- GLOBAL CHAT ---
+        // --- GLOBAL MESSAGES ---
         socket.on('message', (data) => {
             const container = document.getElementById('message-container');
             const div = document.createElement('div');
+            const timestamp = formatTime();
+
             if (data.system) {
                 div.innerHTML = `<div class="text-center py-2"><span class="text-[10px] text-zinc-600 uppercase font-black tracking-widest">${data.text}</span></div>`;
             } else {
@@ -233,9 +237,12 @@
                 div.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
                 div.innerHTML = `
                     <div class="flex gap-3 max-w-[80%] ${isMe ? 'flex-row-reverse' : ''}">
-                        <img src="default.png" class="w-9 h-9 rounded-xl shrink-0 border border-white/10 cursor-pointer hover:brightness-125 transition-all" onclick="showUserOptions(event, '${data.username}')" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${data.username}'">
-                        <div class="${isMe ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-200'} p-3.5 rounded-2xl shadow-xl border border-white/5">
-                            <p class="text-[9px] font-black opacity-50 mb-1 uppercase tracking-tight italic">${data.username} ${getRankHtml(data.username)}</p>
+                        <img src="default.png" class="w-9 h-9 rounded-xl shrink-0 border border-white/10 cursor-pointer hover:scale-105 transition-transform" onclick="showUserOptions(event, '${data.username}')">
+                        <div class="${isMe ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-200'} p-3.5 rounded-2xl shadow-xl border border-white/5 relative">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-[9px] font-black opacity-50 uppercase tracking-tight italic">${data.username} ${getRankHtml(data.username)}</span>
+                                <span class="msg-time">${timestamp}</span>
+                            </div>
                             <p class="text-sm leading-relaxed">${data.text}</p>
                         </div>
                     </div>
@@ -245,32 +252,131 @@
             container.scrollTop = container.scrollHeight;
         });
 
-        // --- PRIVATE MESSAGING ---
-        socket.on('privateMessage', (data) => {
-            const otherUser = data.username === profile.username ? data.target : data.username;
-            if (!conversations[otherUser]) conversations[otherUser] = [];
-            conversations[otherUser].push(data);
-            updateInboxUI();
-            if (data.username !== profile.username) document.getElementById('notif-dot').classList.remove('hidden');
-            if (dmTarget === otherUser && document.getElementById('private-chat-overlay').classList.contains('active')) appendPrivateMessage(data);
+        // --- USER LIST UPDATE ---
+        socket.on('userListUpdate', (users) => {
+            onlineUsers = users;
+            // Filter out self and identify "offline" users as those who were in list before but gone
+            // Note: In a real server-side persistent app, the server sends the full registry.
+            // For this simulation, we'll maintain a local registry of seen users.
+            let registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
+            users.forEach(u => {
+                if (!registry.find(r => r.username === u.username)) registry.push(u);
+            });
+            localStorage.setItem('user_registry', JSON.stringify(registry));
+
+            offlineUsers = registry.filter(r => !users.some(u => u.username === r.username));
+
+            updateSidebarUI();
         });
 
-        socket.on('userListUpdate', (users) => {
-            currentOnlineUsers = users;
-            document.getElementById('user-count').innerText = `${users.length} Online`;
-            const list = document.getElementById('user-list');
-            list.innerHTML = users.map(u => `
-                <div onclick="showUserOptions(event, '${u.username}')" class="flex items-center gap-4 p-4 rounded-[2rem] bg-zinc-900/50 border border-white/5 hover:bg-zinc-800 hover:border-indigo-500/30 transition-all cursor-pointer group">
-                    <img src="default.png" class="w-10 h-10 rounded-xl object-cover shrink-0" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}'">
+        function updateSidebarUI() {
+            document.getElementById('online-total').innerText = onlineUsers.length;
+            document.getElementById('offline-total').innerText = offlineUsers.length;
+            document.getElementById('user-count').innerText = `${onlineUsers.length} Online`;
+
+            const renderUser = (u, isOnline) => `
+                <div onclick="showUserOptions(event, '${u.username}')" class="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/50 border border-white/5 hover:bg-zinc-800 transition-all cursor-pointer group">
+                    <img src="default.png" class="w-9 h-9 rounded-xl object-cover shrink-0">
                     <div class="flex flex-col min-w-0">
-                        <span class="text-sm font-bold truncate text-zinc-200">${u.username} ${getRankHtml(u.username)}</span>
-                        <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">${u.age || '??'}y/o • Online</span>
+                        <span class="text-xs font-bold truncate text-zinc-200">${u.username} ${getRankHtml(u.username)}</span>
+                        <span class="text-[8px] font-black text-zinc-500 uppercase tracking-widest">${isOnline ? 'Online' : 'Offline'}</span>
                     </div>
                 </div>
-            `).join('');
+            `;
+
+            document.getElementById('online-list').innerHTML = onlineUsers.map(u => renderUser(u, true)).join('');
+            document.getElementById('offline-list').innerHTML = offlineUsers.map(u => renderUser(u, false)).join('');
+        }
+
+        // --- PRIVATE MESSAGING ---
+        socket.on('privateMessage', (data) => {
+            const sender = data.username;
+            const target = data.target;
+            const otherUser = sender === profile.username ? target : sender;
+
+            if (!conversations[otherUser]) conversations[otherUser] = [];
+            conversations[otherUser].push({ ...data, time: formatTime() });
+            
+            // Notification logic
+            if (sender !== profile.username && dmTarget !== otherUser) {
+                unreadFrom.add(otherUser);
+                document.getElementById('global-notif-dot').classList.remove('hidden');
+            }
+
+            localStorage.setItem(`dms_${profile.username}`, JSON.stringify(conversations));
+            updateInboxUI();
+            
+            if (dmTarget === otherUser && document.getElementById('private-chat-overlay').classList.contains('active')) {
+                appendPrivateMessage(conversations[otherUser][conversations[otherUser].length - 1]);
+            }
         });
 
-        // --- UI LOGIC ---
+        function updateInboxUI() {
+            const list = document.getElementById('inbox-list');
+            const users = Object.keys(conversations).sort((a, b) => {
+                // Unread users at top
+                if (unreadFrom.has(a) && !unreadFrom.has(b)) return -1;
+                if (!unreadFrom.has(a) && unreadFrom.has(b)) return 1;
+                return 0;
+            });
+
+            if (users.length === 0) {
+                list.innerHTML = `<div class="text-center py-20 opacity-20"><p class="text-[10px] font-black uppercase tracking-[0.2em]">Inbox Empty</p></div>`;
+                return;
+            }
+
+            list.innerHTML = users.map(user => {
+                const lastMsg = conversations[user][conversations[user].length - 1];
+                return `
+                    <div onclick="openPrivateChat('${user}')" class="flex items-center gap-4 p-4 rounded-[2rem] bg-zinc-800/40 border border-white/5 hover:bg-indigo-600/10 transition-all cursor-pointer group relative">
+                        <img src="default.png" class="w-12 h-12 rounded-2xl object-cover">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-black text-white uppercase italic">${user}</span>
+                                <span class="text-[9px] opacity-30">${lastMsg?.time || ''}</span>
+                            </div>
+                            <p class="text-[11px] text-zinc-500 truncate">${lastMsg?.text || 'Sent an attachment'}</p>
+                        </div>
+                        ${unreadFrom.has(user) ? '<div class="notification-dot absolute right-4"></div>' : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openPrivateChat(user) {
+            dmTarget = user;
+            unreadFrom.delete(user);
+            if (unreadFrom.size === 0) document.getElementById('global-notif-dot').classList.add('hidden');
+            
+            document.getElementById('pc-target-name').innerText = user;
+            document.getElementById('inbox-overlay').classList.remove('active');
+            document.getElementById('main-content-wrapper').classList.add('main-blur');
+            document.getElementById('private-chat-overlay').classList.add('active');
+            
+            const container = document.getElementById('private-msg-container');
+            container.innerHTML = '';
+            (conversations[user] || []).forEach(appendPrivateMessage);
+            updateInboxUI();
+        }
+
+        function appendPrivateMessage(data) {
+            const container = document.getElementById('private-msg-container');
+            const div = document.createElement('div');
+            const isMe = data.username === profile.username;
+            div.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
+            div.innerHTML = `
+                <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[85%]">
+                    <div class="${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-zinc-800 text-zinc-200 rounded-bl-none'} p-4 rounded-2xl text-xs border border-white/5 shadow-lg">
+                        ${data.text}
+                    </div>
+                    <span class="text-[8px] font-bold text-zinc-600 mt-1 uppercase tracking-widest">${data.time || formatTime()}</span>
+                </div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // --- CORE FUNCTIONS ---
         function showUserOptions(event, username) {
             event.stopPropagation();
             const menu = document.getElementById('user-context-menu');
@@ -286,13 +392,9 @@
         }
 
         function openProfile(username) {
-            // Find user in current online list or default
-            const user = currentOnlineUsers.find(u => u.username === username) || { 
-                username, 
-                age: '??', 
-                gender: '??', 
-                joined: 'Jan 2026' 
-            };
+            const registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
+            const user = registry.find(u => u.username === username) || { username, age: '??', gender: '??', joined: 'Jan 2026' };
+            const isOnline = onlineUsers.some(u => u.username === username);
 
             document.getElementById('p-username').innerText = user.username;
             document.getElementById('p-ranks').innerHTML = getRankHtml(user.username);
@@ -300,99 +402,35 @@
             document.getElementById('p-gender').innerText = user.gender || '??';
             document.getElementById('p-joined').innerText = user.joined || 'Jan 2026';
             
-            // Check if it's the current user or someone else online
-            const isOnline = currentOnlineUsers.some(u => u.username === username);
             const lastSeen = document.getElementById('p-lastseen');
-            if (isOnline) {
-                lastSeen.innerText = 'Just now';
-                lastSeen.className = 'text-[9px] font-black text-green-400 uppercase';
-            } else {
-                lastSeen.innerText = 'Recently';
-                lastSeen.className = 'text-[9px] font-black text-zinc-500 uppercase';
-            }
+            lastSeen.innerText = isOnline ? 'Just now' : 'Recently';
+            lastSeen.className = isOnline ? 'text-[9px] font-black text-green-400 uppercase' : 'text-[9px] font-black text-zinc-500 uppercase';
 
             document.getElementById('profile-overlay').classList.add('active');
         }
 
-        function toggleInbox() {
-            const overlay = document.getElementById('inbox-overlay');
-            overlay.classList.toggle('active');
-            if (overlay.classList.contains('active')) document.getElementById('notif-dot').classList.add('hidden');
-        }
-
-        function updateInboxUI() {
-            const list = document.getElementById('inbox-list');
-            const users = Object.keys(conversations);
-            if (users.length === 0) {
-                list.innerHTML = `<div class="text-center py-20 opacity-20"><p class="text-[10px] font-black uppercase tracking-[0.2em]">Silence is golden</p></div>`;
-                return;
-            }
-            list.innerHTML = users.map(user => `
-                <div onclick="openPrivateChat('${user}')" class="flex items-center gap-5 p-5 rounded-[2.5rem] bg-zinc-800/40 border border-white/5 hover:bg-indigo-600/20 transition-all cursor-pointer group">
-                    <img src="default.png" class="w-14 h-14 rounded-3xl object-cover border border-white/10 group-hover:scale-105 transition-transform" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${user}'">
-                    <div class="flex-1">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-xs font-black text-white uppercase tracking-tighter italic">${user}</span>
-                        </div>
-                        <p class="text-[11px] text-zinc-500 truncate italic">Open conversation</p>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function openPrivateChat(user) {
-            dmTarget = user;
-            document.getElementById('pc-target-name').innerText = user;
-            document.getElementById('inbox-overlay').classList.remove('active');
-            document.getElementById('main-content-wrapper').classList.add('main-blur');
-            document.getElementById('private-chat-overlay').classList.add('active');
-            const container = document.getElementById('private-msg-container');
-            container.innerHTML = '';
-            (conversations[user] || []).forEach(appendPrivateMessage);
-        }
-
-        function closePrivateChat() {
-            document.getElementById('private-chat-overlay').classList.remove('active');
+        function closeProfile() { document.getElementById('profile-overlay').classList.remove('active'); }
+        function closePrivateChat() { 
+            document.getElementById('private-chat-overlay').classList.remove('active'); 
             document.getElementById('main-content-wrapper').classList.remove('main-blur');
             dmTarget = null;
         }
-
-        function appendPrivateMessage(data) {
-            const container = document.getElementById('private-msg-container');
-            const div = document.createElement('div');
-            const isMe = data.username === profile.username;
-            div.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
-            div.innerHTML = `<div class="${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-zinc-800 text-zinc-200 rounded-bl-none'} p-4 rounded-2xl text-xs max-w-[85%] border border-white/5 shadow-lg">${data.text}</div>`;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-        }
+        function toggleInbox() { document.getElementById('inbox-overlay').classList.toggle('active'); updateInboxUI(); }
 
         function openDMModal(username) {
             dmTarget = username;
             document.getElementById('dm-target-name-modal').innerText = `Message ${username}`;
             document.getElementById('dm-modal').classList.add('active');
-            document.getElementById('dm-text').focus();
         }
 
         function sendPrivateMessage() {
             const text = document.getElementById('dm-text').value.trim();
             if (!text || !dmTarget) return;
-            const payload = { target: dmTarget, text, username: profile.username };
-            socket.emit('privateMessage', payload);
-            if (!conversations[dmTarget]) conversations[dmTarget] = [];
-            conversations[dmTarget].push(payload);
+            socket.emit('privateMessage', { target: dmTarget, text, username: profile.username });
             document.getElementById('dm-modal').classList.remove('active');
             document.getElementById('dm-text').value = '';
             openPrivateChat(dmTarget);
         }
-
-        function initiateDMFromProfile() {
-            const username = document.getElementById('p-username').innerText;
-            closeProfile();
-            openDMModal(username);
-        }
-
-        function closeProfile() { document.getElementById('profile-overlay').classList.remove('active'); }
 
         document.getElementById('chat-form').onsubmit = (e) => {
             e.preventDefault();
@@ -404,11 +442,7 @@
             e.preventDefault();
             const input = document.getElementById('private-msg-input');
             if (input.value.trim() && dmTarget) {
-                const payload = { target: dmTarget, text: input.value, username: profile.username };
-                socket.emit('privateMessage', payload);
-                if (!conversations[dmTarget]) conversations[dmTarget] = [];
-                conversations[dmTarget].push(payload);
-                appendPrivateMessage(payload);
+                socket.emit('privateMessage', { target: dmTarget, text: input.value, username: profile.username });
                 input.value = '';
             }
         };
