@@ -3,224 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Whispers | Secure Entry</title>
+    <title>Whisper | Gateway</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
+            --bg: #050505;
             --accent: #8b5cf6;
-            --bg-dark: #050505;
-            --card-bg: #0d0d0d;
         }
-
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: var(--bg-dark);
-            color: #ffffff;
-            overflow-x: hidden;
+            background-color: var(--bg);
+            color: white;
+            overflow: hidden;
         }
-
+        .glass-card {
+            background: rgba(15, 15, 15, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 2.5rem;
+        }
         .whisper-gradient {
             background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-
-        .auth-card {
-            background: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(20px);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
-
-        .input-group input {
+        .input-field {
             background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             transition: all 0.3s ease;
         }
-
-        .input-group input:focus {
+        .input-field:focus {
             border-color: var(--accent);
             background: rgba(255, 255, 255, 0.05);
             outline: none;
-            box-shadow: 0 0 15px rgba(139, 92, 246, 0.1);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.1);
         }
-
-        .btn-primary {
+        .btn-glow {
             background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 10px 30px -10px rgba(124, 58, 237, 0.5);
+            transition: transform 0.2s active;
         }
+        .btn-glow:active { transform: scale(0.98); }
 
-        .btn-primary:active {
-            transform: scale(0.98);
-        }
-
-        .glass-circle {
+        /* Background Orbs */
+        .orb {
             position: absolute;
-            width: 300px;
-            height: 300px;
+            width: 400px;
+            height: 400px;
             border-radius: 50%;
             background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
-            filter: blur(40px);
+            filter: blur(60px);
             z-index: -1;
-        }
-
-        .fade-in {
-            animation: fadeIn 0.5s ease-out forwards;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .hidden-state {
-            display: none;
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="flex items-center justify-center min-h-screen">
+    <div class="orb -top-20 -left-20"></div>
+    <div class="orb -bottom-20 -right-20"></div>
 
-    <!-- Decorative Elements -->
-    <div class="glass-circle top-[-10%] left-[-10%]"></div>
-    <div class="glass-circle bottom-[-10%] right-[-10%]"></div>
-
-    <div class="w-full max-w-md">
-        <!-- Logo Area -->
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-800 tracking-tighter mb-2">
-                <span class="whisper-gradient">WHISPERS</span>
-            </h1>
-            <p id="auth-subtitle" class="text-zinc-500 text-sm font-medium tracking-wide uppercase">Connect in silence.</p>
-        </div>
-
-        <!-- Auth Card -->
-        <div class="auth-card rounded-[2.5rem] p-8 md:p-10">
-            
-            <!-- Login State -->
-            <div id="login-state" class="fade-in">
-                <h2 class="text-2xl font-semibold mb-6">Welcome back</h2>
-                <form onsubmit="handleAuth(event, 'login')" class="space-y-4">
-                    <div class="input-group">
-                        <label class="text-[10px] uppercase font-bold text-zinc-500 ml-1 mb-2 block">Username or Email</label>
-                        <input type="text" required class="w-full rounded-2xl px-4 py-4 text-white placeholder-zinc-600" placeholder="your_handle">
-                    </div>
-                    <div class="input-group">
-                        <label class="text-[10px] uppercase font-bold text-zinc-500 ml-1 mb-2 block">Password</label>
-                        <input type="password" required class="w-full rounded-2xl px-4 py-4 text-white placeholder-zinc-600" placeholder="••••••••">
-                    </div>
-                    <div class="flex justify-end">
-                        <a href="#" class="text-xs text-zinc-500 hover:text-indigo-400 transition-colors">Forgot password?</a>
-                    </div>
-                    <button type="submit" class="btn-primary w-full py-4 rounded-2xl font-bold text-sm shadow-lg shadow-indigo-500/20 mt-4">
-                        Sign In
-                    </button>
-                </form>
-                <div class="mt-8 text-center">
-                    <p class="text-zinc-500 text-sm">New to Whispers? 
-                        <button onclick="toggleState('signup')" class="text-indigo-400 font-semibold hover:underline">Create Account</button>
-                    </p>
-                </div>
+    <div class="w-full max-w-md p-6">
+        <div class="glass-card p-10 shadow-2xl">
+            <div class="text-center mb-10">
+                <h1 class="text-4xl font-800 tracking-tighter whisper-gradient">WHISPERS</h1>
+                <p class="text-zinc-500 text-[10px] uppercase tracking-[0.4em] mt-2 font-bold">Secure Communication</p>
             </div>
 
-            <!-- Signup State -->
-            <div id="signup-state" class="fade-in hidden-state">
-                <h2 class="text-2xl font-semibold mb-6">Join the fold</h2>
-                <form onsubmit="handleAuth(event, 'signup')" class="space-y-4">
-                    <div class="input-group">
-                        <label class="text-[10px] uppercase font-bold text-zinc-500 ml-1 mb-2 block">Pick a handle</label>
-                        <input type="text" id="signup-username" required class="w-full rounded-2xl px-4 py-4 text-white placeholder-zinc-600" placeholder="e.g. moonlight_soul">
-                    </div>
-                    <div class="input-group">
-                        <label class="text-[10px] uppercase font-bold text-zinc-500 ml-1 mb-2 block">Email Address</label>
-                        <input type="email" required class="w-full rounded-2xl px-4 py-4 text-white placeholder-zinc-600" placeholder="you@example.com">
-                    </div>
-                    <div class="input-group">
-                        <label class="text-[10px] uppercase font-bold text-zinc-500 ml-1 mb-2 block">Secure Password</label>
-                        <input type="password" required class="w-full rounded-2xl px-4 py-4 text-white placeholder-zinc-600" placeholder="••••••••">
-                    </div>
-                    <p class="text-[10px] text-zinc-500 text-center px-4 leading-relaxed">
-                        By signing up, you agree to our <span class="text-zinc-300">Privacy Protocols</span> and <span class="text-zinc-300">Shadow Rules</span>.
-                    </p>
-                    <button type="submit" class="btn-primary w-full py-4 rounded-2xl font-bold text-sm shadow-lg shadow-indigo-500/20 mt-4">
-                        Initialize Account
-                    </button>
-                </form>
-                <div class="mt-8 text-center">
-                    <p class="text-zinc-500 text-sm">Already a member? 
-                        <button onclick="toggleState('login')" class="text-indigo-400 font-semibold hover:underline">Sign In</button>
-                    </p>
-                </div>
+            <!-- Toggle Tabs -->
+            <div class="flex bg-white/5 p-1 rounded-2xl mb-8">
+                <button id="loginTab" onclick="switchTab('login')" class="flex-1 py-2 text-sm font-bold rounded-xl bg-white/10 transition-all">Login</button>
+                <button id="signupTab" onclick="switchTab('signup')" class="flex-1 py-2 text-sm font-bold text-zinc-500 hover:text-white transition-all">Sign Up</button>
             </div>
 
-        </div>
-        
-        <!-- Footer -->
-        <p class="text-center mt-8 text-zinc-600 text-xs font-medium">
-            &copy; 2024 Whispers Protocol. End-to-end encrypted.
-        </p>
-    </div>
+            <!-- Form -->
+            <form id="authForm" onsubmit="handleSubmit(event)" class="space-y-5">
+                <div id="userField" class="hidden">
+                    <label class="block text-[10px] uppercase tracking-widest text-zinc-500 font-black mb-2 ml-1">Unique Alias</label>
+                    <input type="text" id="username" class="input-field w-full px-5 py-4 rounded-2xl text-white text-sm" placeholder="e.g. ghost_operator">
+                </div>
+                
+                <div>
+                    <label class="block text-[10px] uppercase tracking-widest text-zinc-500 font-black mb-2 ml-1">Identity Secret</label>
+                    <input type="email" id="email" required class="input-field w-full px-5 py-4 rounded-2xl text-white text-sm" placeholder="email@protocol.com">
+                </div>
 
-    <!-- Notification Toast -->
-    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white text-black px-6 py-3 rounded-2xl text-sm font-bold shadow-2xl transition-all opacity-0 pointer-events-none translate-y-4">
-        Success Message
+                <div>
+                    <label class="block text-[10px] uppercase tracking-widest text-zinc-500 font-black mb-2 ml-1">Access Key</label>
+                    <input type="password" id="password" required class="input-field w-full px-5 py-4 rounded-2xl text-white text-sm" placeholder="••••••••">
+                </div>
+
+                <button type="submit" class="btn-glow w-full py-4 rounded-2xl font-bold text-sm text-white mt-4 uppercase tracking-widest">
+                    Establish Link
+                </button>
+            </form>
+
+            <div id="statusMsg" class="mt-6 text-center text-xs text-zinc-600 font-medium min-h-[1rem]"></div>
+        </div>
     </div>
 
     <script>
-        function toggleState(state) {
-            const login = document.getElementById('login-state');
-            const signup = document.getElementById('signup-state');
-            const subtitle = document.getElementById('auth-subtitle');
+        let mode = 'login';
 
-            if (state === 'signup') {
-                login.classList.add('hidden-state');
-                signup.classList.remove('hidden-state');
-                subtitle.innerText = "Start your quiet journey.";
+        function switchTab(newMode) {
+            mode = newMode;
+            const userField = document.getElementById('userField');
+            const loginTab = document.getElementById('loginTab');
+            const signupTab = document.getElementById('signupTab');
+            const btn = document.querySelector('.btn-glow');
+
+            if (mode === 'signup') {
+                userField.classList.remove('hidden');
+                signupTab.classList.add('bg-white/10', 'text-white');
+                signupTab.classList.remove('text-zinc-500');
+                loginTab.classList.remove('bg-white/10', 'text-white');
+                loginTab.classList.add('text-zinc-500');
+                btn.innerText = 'Create Identity';
             } else {
-                signup.classList.add('hidden-state');
-                login.classList.remove('hidden-state');
-                subtitle.innerText = "Connect in silence.";
+                userField.classList.add('hidden');
+                loginTab.classList.add('bg-white/10', 'text-white');
+                loginTab.classList.remove('text-zinc-500');
+                signupTab.classList.remove('bg-white/10', 'text-white');
+                signupTab.classList.add('text-zinc-500');
+                btn.innerText = 'Establish Link';
             }
         }
 
-        function showToast(message, isError = false) {
-            const toast = document.getElementById('toast');
-            toast.innerText = message;
-            toast.style.background = isError ? '#ef4444' : '#ffffff';
-            toast.style.color = isError ? '#ffffff' : '#000000';
-            toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+        function handleSubmit(e) {
+            e.preventDefault();
+            const status = document.getElementById('statusMsg');
+            const user = document.getElementById('username').value || 'User_' + Math.floor(Math.random()*1000);
             
+            status.innerText = mode === 'login' ? "Verifying credentials..." : "Encrypting new identity...";
+            status.classList.add('text-indigo-400');
+
+            // Simulate Auth & Save Session
             setTimeout(() => {
-                toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
-            }, 3000);
-        }
-
-        function handleAuth(event, type) {
-            event.preventDefault();
-            
-            // For now, we simulate a successful login/signup
-            // This will store the data in localStorage for the next phase (the chat app)
-            const username = type === 'signup' 
-                ? document.getElementById('signup-username').value 
-                : 'User' + Math.floor(Math.random() * 1000);
-
-            const profile = {
-                username: username,
-                joined: new Date().toISOString(),
-                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
-                isAuth: true
-            };
-
-            localStorage.setItem('whispers_session', JSON.stringify(profile));
-            
-            showToast(type === 'signup' ? "Account created!" : "Welcome back!");
-            
-            // Redirect simulation
-            setTimeout(() => {
-                // In a real app, window.location.href = '/chat'
-                console.log("Authenticated as:", username);
-                showToast("Redirecting to the Lounge...");
-            }, 1500);
+                localStorage.setItem('whisper_user', user);
+                window.location.href = 'chat_app.html';
+            }, 1200);
         }
     </script>
 </body>
