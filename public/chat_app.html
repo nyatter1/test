@@ -43,6 +43,21 @@
 
         .pfp-main { border: 1px solid rgba(255, 255, 255, 0.1); object-fit: cover; background: #1c1c1f; }
         .profile-banner { background-size: cover; background-position: center; }
+
+        .like-btn {
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .like-btn:active {
+            transform: scale(0.9);
+        }
+        .heart-pop {
+            animation: heartPop 0.4s ease-out;
+        }
+        @keyframes heartPop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); color: #ef4444; }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body class="h-screen flex p-4 gap-4 relative">
@@ -72,7 +87,7 @@
 
             <div class="p-4 border-t border-zinc-800 bg-zinc-900/30 flex items-center justify-between">
                 <div class="flex items-center gap-2 cursor-pointer group" onclick="openProfile(profile.username)">
-                    <img src="" id="my-pfp" class="w-8 h-8 rounded-lg pfp-main group-hover:opacity-80 transition-opacity">
+                    <img src="default.png" id="my-pfp" class="w-8 h-8 rounded-lg pfp-main group-hover:opacity-80 transition-opacity">
                     <span class="text-xs font-bold group-hover:text-indigo-400 transition-colors" id="my-username-display">User</span>
                 </div>
                 <button onclick="logout()" class="text-[10px] font-black text-zinc-600 hover:text-red-400 uppercase tracking-widest transition-colors">Exit</button>
@@ -106,16 +121,27 @@
         <div class="w-full max-w-sm bg-zinc-900 rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl">
             <div id="p-banner" class="h-32 bg-indigo-600 w-full profile-banner"></div>
             <div class="px-6 pb-8 text-center -mt-12">
-                <div class="inline-block p-1 bg-zinc-900 rounded-3xl mb-4">
-                    <img id="p-pfp" src="" class="w-24 h-24 rounded-[1.8rem] border-4 border-zinc-900 pfp-main">
+                <div class="relative inline-block mb-4">
+                    <div class="p-1 bg-zinc-900 rounded-3xl">
+                        <img id="p-pfp" src="default.png" class="w-24 h-24 rounded-[1.8rem] border-4 border-zinc-900 pfp-main">
+                    </div>
+                    <!-- Like Button -->
+                    <button id="p-like-btn" class="like-btn absolute -right-2 bottom-0 bg-zinc-800 border border-white/10 p-2.5 rounded-2xl text-pink-500 shadow-xl hover:bg-zinc-700">
+                        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
                 </div>
+
                 <h3 id="p-username" class="text-2xl font-800 tracking-tighter text-white mb-1 uppercase italic">Username</h3>
                 <div id="p-ranks" class="mb-4"></div>
                 
-                <div class="grid grid-cols-2 gap-2 mb-6">
+                <div class="grid grid-cols-3 gap-2 mb-6">
                     <div class="bg-zinc-800/50 p-3 rounded-2xl border border-white/5">
-                        <p class="text-[8px] font-black text-zinc-500 uppercase mb-1">Age / Gender</p>
-                        <p id="p-details" class="text-xs font-bold text-zinc-200">18 / Unknown</p>
+                        <p class="text-[8px] font-black text-zinc-500 uppercase mb-1">Details</p>
+                        <p id="p-details" class="text-xs font-bold text-zinc-200">18 / M</p>
+                    </div>
+                    <div class="bg-zinc-800/50 p-3 rounded-2xl border border-white/5">
+                        <p class="text-[8px] font-black text-zinc-500 uppercase mb-1">Likes</p>
+                        <p id="p-likes" class="text-xs font-bold text-pink-500">0</p>
                     </div>
                     <div class="bg-zinc-800/50 p-3 rounded-2xl border border-white/5">
                         <p class="text-[8px] font-black text-zinc-500 uppercase mb-1">Status</p>
@@ -137,14 +163,16 @@
 
         let onlineUsers = [];
         let offlineUsers = [];
+        // Store likes in a local object that syncs via socket
+        let profileLikes = JSON.parse(localStorage.getItem('lounge_likes_map') || '{}');
         const userMetadata = JSON.parse(localStorage.getItem('lounge_user_metadata') || '{}');
 
-        // Update local user meta
+        // Force all profile pictures to default.png
         const myMeta = {
             username: profile.username,
             age: profile.age || 19,
             gender: profile.gender || 'Male',
-            pfp: `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`,
+            pfp: `default.png`,
             banner: `https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=500&auto=format&fit=crop`,
             lastSeen: Date.now()
         };
@@ -152,7 +180,7 @@
         localStorage.setItem('lounge_user_metadata', JSON.stringify(userMetadata));
 
         document.getElementById('my-username-display').innerText = profile.username;
-        document.getElementById('my-pfp').src = myMeta.pfp;
+        document.getElementById('my-pfp').src = 'default.png';
 
         const getRankHtml = (name) => {
             if (!name) return '';
@@ -169,7 +197,6 @@
             const container = document.getElementById('message-container');
             const div = document.createElement('div');
             const now = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            const meta = userMetadata[data.username] || { pfp: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.username}` };
             
             if (data.system) {
                 div.innerHTML = `<div class="text-center py-2"><span class="text-[9px] text-zinc-600 uppercase font-black tracking-widest">${data.text}</span></div>`;
@@ -177,7 +204,7 @@
                 div.className = `flex justify-start animate-in slide-in-from-left-2 duration-200`;
                 div.innerHTML = `
                     <div class="flex gap-3 max-w-[90%] group">
-                        <img onclick="openProfile('${data.username}')" src="${meta.pfp}" class="w-9 h-9 rounded-xl shrink-0 pfp-main cursor-pointer hover:opacity-80 transition-opacity">
+                        <img onclick="openProfile('${data.username}')" src="default.png" class="w-9 h-9 rounded-xl shrink-0 pfp-main cursor-pointer hover:opacity-80 transition-opacity">
                         <div class="bg-zinc-800/50 p-3.5 rounded-2xl border border-white/5">
                             <div class="flex items-center gap-2 mb-1">
                                 <span onclick="openProfile('${data.username}')" class="text-[10px] font-black text-zinc-400 uppercase italic cursor-pointer hover:text-white">${data.username} ${getRankHtml(data.username)}</span>
@@ -192,16 +219,26 @@
             container.scrollTop = container.scrollHeight;
         });
 
+        // --- LIKE SYSTEM ---
+        // We use the socket to broadcast likes since we don't have a dedicated backend DB
+        socket.on('profileLiked', (data) => {
+            profileLikes[data.target] = (profileLikes[data.target] || 0) + 1;
+            localStorage.setItem('lounge_likes_map', JSON.stringify(profileLikes));
+            
+            // If the profile is currently open, update the count live
+            const openUser = document.getElementById('p-username').innerText;
+            if (openUser === data.target) {
+                const countEl = document.getElementById('p-likes');
+                countEl.innerText = profileLikes[data.target];
+                countEl.classList.remove('heart-pop');
+                void countEl.offsetWidth; // Trigger reflow
+                countEl.classList.add('heart-pop');
+            }
+        });
+
         // --- SIDEBAR LOGIC ---
         socket.on('userListUpdate', (users) => {
             onlineUsers = users;
-            users.forEach(u => {
-                if (!userMetadata[u.username]) userMetadata[u.username] = { username: u.username };
-                userMetadata[u.username].lastSeen = Date.now();
-                userMetadata[u.username].pfp = `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`;
-            });
-            localStorage.setItem('lounge_user_metadata', JSON.stringify(userMetadata));
-            
             const registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
             users.forEach(u => { if(!registry.some(r => r.username === u.username)) registry.push(u); });
             localStorage.setItem('user_registry', JSON.stringify(registry));
@@ -218,12 +255,10 @@
 
         function renderList(id, users, isOnline) {
             document.getElementById(id).innerHTML = users.map(u => {
-                const meta = userMetadata[u.username] || {};
-                const pfp = meta.pfp || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`;
                 return `
                 <div class="flex items-center justify-between p-2.5 rounded-2xl hover:bg-white/5 transition-all group cursor-pointer" onclick="openProfile('${u.username}')">
                     <div class="flex items-center gap-3 min-w-0">
-                        <img src="${pfp}" class="w-9 h-9 rounded-xl shrink-0 pfp-main group-hover:opacity-80 transition-opacity">
+                        <img src="default.png" class="w-9 h-9 rounded-xl shrink-0 pfp-main group-hover:opacity-80 transition-opacity">
                         <div class="truncate">
                             <div class="flex items-center truncate">
                                 <span class="text-xs font-bold text-zinc-200 truncate group-hover:text-indigo-400 transition-colors">${u.username}</span>
@@ -237,35 +272,43 @@
         }
 
         // --- PROFILE OVERLAY ---
+        let currentViewedUser = null;
+
         function openProfile(username) {
-            const meta = userMetadata[username] || { 
-                age: 18, 
-                gender: 'Secret', 
-                pfp: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
-                banner: 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=500&auto=format&fit=crop'
-            };
+            currentViewedUser = username;
+            const meta = userMetadata[username] || { age: 18, gender: '?' };
             
             document.getElementById('p-username').innerText = username;
             document.getElementById('p-ranks').innerHTML = getRankHtml(username);
-            document.getElementById('p-pfp').src = meta.pfp || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
-            document.getElementById('p-banner').style.backgroundImage = `url('${meta.banner}')`;
-            document.getElementById('p-details').innerText = `${meta.age || '18'} / ${meta.gender || 'Unknown'}`;
+            document.getElementById('p-pfp').src = 'default.png';
+            document.getElementById('p-details').innerText = `${meta.age || '18'} / ${meta.gender || '?'}`;
+            document.getElementById('p-likes').innerText = profileLikes[username] || 0;
             
             const isOnline = onlineUsers.some(u => u.username === username);
             if (isOnline) {
                 document.getElementById('p-lastseen').innerText = 'Active Now';
                 document.getElementById('p-lastseen').className = 'text-xs font-bold text-green-500';
             } else {
-                const diff = Date.now() - (meta.lastSeen || Date.now());
-                const mins = Math.floor(diff / 60000);
-                document.getElementById('p-lastseen').innerText = mins < 1 ? 'Just now' : `${mins}m ago`;
+                document.getElementById('p-lastseen').innerText = 'Away';
                 document.getElementById('p-lastseen').className = 'text-xs font-bold text-zinc-500';
             }
 
             document.getElementById('profile-overlay').classList.add('active');
         }
 
+        document.getElementById('p-like-btn').onclick = () => {
+            if (!currentViewedUser) return;
+            // In a real app, you'd check if the user already liked this person
+            socket.emit('likeUser', { target: currentViewedUser, from: profile.username });
+            
+            // Local optimistic update
+            profileLikes[currentViewedUser] = (profileLikes[currentViewedUser] || 0) + 1;
+            document.getElementById('p-likes').innerText = profileLikes[currentViewedUser];
+            localStorage.setItem('lounge_likes_map', JSON.stringify(profileLikes));
+        };
+
         function closeProfile() { 
+            currentViewedUser = null;
             document.getElementById('profile-overlay').classList.remove('active'); 
         }
 
@@ -282,6 +325,16 @@
             localStorage.removeItem('chat_profile'); 
             window.location.href = '/'; 
         }
+
+        // Handle incoming likes from others
+        socket.on('userLiked', (data) => {
+            // Re-sync local likes map with data from server or broadcast
+            profileLikes[data.target] = data.newTotal;
+            localStorage.setItem('lounge_likes_map', JSON.stringify(profileLikes));
+            if(currentViewedUser === data.target) {
+                document.getElementById('p-likes').innerText = data.newTotal;
+            }
+        });
     </script>
 </body>
 </html>
