@@ -44,7 +44,7 @@
         .hover-actions { opacity: 0; transition: opacity 0.2s ease; }
         .user-card:hover .hover-actions { opacity: 1; }
         
-        .pfp-main { border: 1px solid rgba(255, 255, 255, 0.1); object-fit: cover; }
+        .pfp-main { border: 1px solid rgba(255, 255, 255, 0.1); object-fit: cover; background: #18181b; }
     </style>
 </head>
 <body class="h-screen flex p-4 gap-4 relative">
@@ -110,17 +110,24 @@
                 <div class="flex items-center gap-3">
                     <img src="default.png" class="w-10 h-10 rounded-xl pfp-main">
                     <div>
-                        <h3 id="pc-target-name" class="text-sm font-black text-white uppercase italic">Username</h3>
-                        <p class="text-[9px] font-bold text-indigo-500 uppercase">Private Message</p>
+                        <div class="flex items-center">
+                            <h3 id="pc-target-name" class="text-sm font-black text-white uppercase italic">Username</h3>
+                            <div id="pc-target-rank"></div>
+                        </div>
+                        <p class="text-[9px] font-bold text-indigo-500 uppercase tracking-tighter">Private Encryption Active</p>
                     </div>
                 </div>
-                <button onclick="closePrivateChat()" class="text-zinc-500 hover:text-white"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2"/></svg></button>
+                <button onclick="closePrivateChat()" class="text-zinc-500 hover:text-white p-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2"/></svg>
+                </button>
             </div>
             <div id="private-msg-container" class="flex-1 overflow-y-auto p-6 space-y-4 bg-zinc-900/30"></div>
             <div class="p-5">
                 <form id="private-chat-form" class="flex gap-2 bg-zinc-800 p-2 rounded-2xl border border-zinc-700">
-                    <input type="text" id="private-msg-input" autocomplete="off" class="flex-1 bg-transparent border-none outline-none px-4 py-2 text-sm text-white" placeholder="Reply privately...">
-                    <button type="submit" class="bg-indigo-600 p-3 rounded-xl text-white hover:bg-indigo-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke-width="2.5"/></svg></button>
+                    <input type="text" id="private-msg-input" autocomplete="off" class="flex-1 bg-transparent border-none outline-none px-4 py-2 text-sm text-white" placeholder="Type a private message...">
+                    <button type="submit" class="bg-indigo-600 p-3 rounded-xl text-white hover:bg-indigo-500 transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke-width="2.5"/></svg>
+                    </button>
                 </form>
             </div>
         </div>
@@ -139,7 +146,7 @@
                 
                 <div class="space-y-3 mb-6">
                     <button id="p-dm-btn" onclick="initiateDMFromProfile()" class="w-full bg-indigo-600 p-4 rounded-2xl text-[10px] font-black text-white uppercase tracking-[0.3em] hover:bg-indigo-500 transition-all">Send Message</button>
-                    <button onclick="closeProfile()" class="w-full bg-zinc-800 p-4 rounded-2xl text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em] hover:bg-zinc-700 transition-all">Close</button>
+                    <button onclick="closeProfile()" class="w-full bg-zinc-800 p-4 rounded-2xl text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em] hover:bg-zinc-700 transition-all">Close Window</button>
                 </div>
             </div>
         </div>
@@ -153,11 +160,14 @@
         let onlineUsers = [];
         let offlineUsers = [];
         let dmTarget = null;
+        
+        // Load DM Conversations from localStorage
         let conversations = JSON.parse(localStorage.getItem(`dms_${profile.username}`) || '{}');
 
         document.getElementById('my-username-display').innerText = profile.username;
 
         const getRankHtml = (name) => {
+            if (!name) return '';
             const n = name.toLowerCase();
             if (n === 'dev') return '<span class="rank-badge rank-dev">| DEV |</span>';
             if (n === 'fluffy') return '<span class="rank-badge rank-helper">| HELPER |</span>';
@@ -192,7 +202,7 @@
             container.scrollTop = container.scrollHeight;
         });
 
-        // --- USER LIST UPDATE ---
+        // --- USER LIST & SIDEBAR ---
         socket.on('userListUpdate', (users) => {
             onlineUsers = users;
             const registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
@@ -224,11 +234,11 @@
                         </div>
                     </div>
                     <div class="hover-actions flex items-center gap-1">
-                        <button onclick="openProfile('${u.username}')" class="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-colors">
+                        <button onclick="openProfile('${u.username}')" title="View Profile" class="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-colors">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-width="2"/></svg>
                         </button>
                         ${u.username !== profile.username ? `
-                        <button onclick="openPrivateChat('${u.username}')" class="p-2 bg-indigo-600/20 hover:bg-indigo-600 rounded-lg text-indigo-400 hover:text-white transition-colors">
+                        <button onclick="openPrivateChat('${u.username}')" title="Direct Message" class="p-2 bg-indigo-600/20 hover:bg-indigo-600 rounded-lg text-indigo-400 hover:text-white transition-colors">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" stroke-width="2"/></svg>
                         </button>` : ''}
                     </div>
@@ -236,23 +246,38 @@
             `).join('');
         }
 
-        // --- PM SYSTEM ---
+        // --- PRIVATE MESSAGE ENGINE ---
         socket.on('privateMessage', (data) => {
+            // Determine who the "partner" is for this conversation
             const partner = data.username === profile.username ? data.target : data.username;
+            
             if (!conversations[partner]) conversations[partner] = [];
             
-            const msg = { ...data, time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) };
+            const msg = { 
+                ...data, 
+                time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) 
+            };
+
             conversations[partner].push(msg);
             localStorage.setItem(`dms_${profile.username}`, JSON.stringify(conversations));
 
-            if (dmTarget === partner) appendPrivateMessage(msg);
+            // Only append to the UI if the current chat window is open for this partner
+            if (dmTarget === partner) {
+                appendPrivateMessage(msg);
+            }
         });
 
         function openPrivateChat(user) {
             dmTarget = user;
             document.getElementById('pc-target-name').innerText = user;
+            document.getElementById('pc-target-rank').innerHTML = getRankHtml(user);
             document.getElementById('private-msg-container').innerHTML = '';
-            (conversations[user] || []).forEach(appendPrivateMessage);
+            
+            // Load history
+            if (conversations[user]) {
+                conversations[user].forEach(appendPrivateMessage);
+            }
+            
             document.getElementById('private-chat-overlay').classList.add('active');
         }
 
@@ -260,12 +285,16 @@
             const container = document.getElementById('private-msg-container');
             const div = document.createElement('div');
             const isMe = data.username === profile.username;
-            div.className = `flex justify-start`;
+            
+            div.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
             div.innerHTML = `
-                <div class="flex flex-col items-start max-w-[85%]">
-                    <div class="${isMe ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-300'} p-3 rounded-2xl text-xs border border-white/5">
-                        <span class="block text-[8px] font-black opacity-50 mb-1 uppercase">${data.username} ${getRankHtml(data.username)}</span>
-                        ${data.text}
+                <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[85%]">
+                    <div class="${isMe ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-300'} p-3.5 rounded-2xl text-xs border border-white/5">
+                        <div class="flex items-center gap-2 mb-1 opacity-70">
+                            <span class="text-[8px] font-black uppercase tracking-tighter">${data.username}</span>
+                            ${getRankHtml(data.username)}
+                        </div>
+                        <p class="leading-relaxed">${data.text}</p>
                     </div>
                     <span class="text-[8px] font-bold text-zinc-600 mt-1 uppercase">${data.time || ''}</span>
                 </div>
@@ -274,9 +303,12 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        function closePrivateChat() { dmTarget = null; document.getElementById('private-chat-overlay').classList.remove('active'); }
+        function closePrivateChat() { 
+            dmTarget = null; 
+            document.getElementById('private-chat-overlay').classList.remove('active'); 
+        }
 
-        // --- PROFILE MODAL ---
+        // --- PROFILE LOGIC ---
         function openProfile(username) {
             document.getElementById('p-username').innerText = username;
             document.getElementById('p-ranks').innerHTML = getRankHtml(username);
@@ -284,7 +316,9 @@
             document.getElementById('profile-overlay').classList.add('active');
         }
 
-        function closeProfile() { document.getElementById('profile-overlay').classList.remove('active'); }
+        function closeProfile() { 
+            document.getElementById('profile-overlay').classList.remove('active'); 
+        }
 
         function initiateDMFromProfile() {
             const user = document.getElementById('p-username').innerText;
@@ -292,23 +326,33 @@
             openPrivateChat(user);
         }
 
-        // --- SUBMIT HANDLERS ---
+        // --- SUBMISSIONS ---
         document.getElementById('chat-form').onsubmit = (e) => {
             e.preventDefault();
             const input = document.getElementById('msg-input');
-            if (input.value.trim()) { socket.emit('sendMessage', { text: input.value }); input.value = ''; }
+            if (input.value.trim()) { 
+                socket.emit('sendMessage', { text: input.value }); 
+                input.value = ''; 
+            }
         };
 
         document.getElementById('private-chat-form').onsubmit = (e) => {
             e.preventDefault();
             const input = document.getElementById('private-msg-input');
             if (input.value.trim() && dmTarget) {
-                socket.emit('privateMessage', { target: dmTarget, text: input.value, username: profile.username });
+                socket.emit('privateMessage', { 
+                    target: dmTarget, 
+                    text: input.value, 
+                    username: profile.username 
+                });
                 input.value = '';
             }
         };
 
-        function logout() { localStorage.removeItem('chat_profile'); window.location.href = '/'; }
+        function logout() { 
+            localStorage.removeItem('chat_profile'); 
+            window.location.href = '/'; 
+        }
     </script>
 </body>
 </html>
