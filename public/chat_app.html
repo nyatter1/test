@@ -47,7 +47,7 @@
         .like-btn.unliked { color: #ef4444; background: #18181b; }
         .like-btn.liked { color: #000000; background: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
 
-        .info-card { transition: transform 0.2s ease; }
+        .info-card { transition: transform 0.2s ease; cursor: pointer; }
         .info-card:not(.disabled):hover { transform: translateY(-2px); }
         
         .staff-cat-btn { transition: all 0.2s ease; }
@@ -62,6 +62,7 @@
 
     <input type="file" id="file-upload" class="hidden" accept="image/*,video/*,audio/*,.gif">
 
+    <!-- Left Sidebar -->
     <aside class="w-72 glass rounded-3xl flex flex-col overflow-hidden shrink-0 hidden lg:flex">
         <div class="p-6 border-b border-zinc-800">
             <h2 class="font-800 text-xl tracking-tighter text-indigo-400 uppercase italic mb-4">LOUNGE</h2>
@@ -90,6 +91,7 @@
         </div>
     </aside>
 
+    <!-- Center Chat -->
     <main class="flex-1 glass rounded-3xl flex flex-col overflow-hidden relative">
         <div class="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/20 backdrop-blur-md">
             <div class="flex items-center gap-2 px-2">
@@ -111,6 +113,7 @@
         </div>
     </main>
 
+    <!-- Right Sidebar -->
     <aside class="w-64 flex flex-col gap-4 shrink-0">
         <div class="glass rounded-3xl p-6 flex-1 flex flex-col gap-3">
             <h3 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-2 px-2">Information Hub</h3>
@@ -144,6 +147,7 @@
         </div>
     </aside>
 
+    <!-- Rules Modal -->
     <div id="rules-modal" class="modal-overlay">
         <div class="w-full max-w-2xl bg-zinc-900 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
             <div class="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
@@ -159,6 +163,7 @@
         </div>
     </div>
 
+    <!-- Staff Modal -->
     <div id="staff-modal" class="modal-overlay">
         <div class="w-full max-w-4xl bg-zinc-900 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl flex h-[80vh]">
             <div class="w-56 border-r border-zinc-800 bg-zinc-900/50 p-6 flex flex-col gap-2">
@@ -177,6 +182,7 @@
         </div>
     </div>
 
+    <!-- Profile Overlay -->
     <div id="profile-overlay" class="modal-overlay">
         <div class="w-full max-w-sm bg-zinc-900 rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl">
             <div id="p-banner" class="h-32 bg-indigo-600 w-full"></div>
@@ -227,13 +233,17 @@
             { id: 'dev', label: 'Developer', keywords: ['dev'], class: 'rank-dev' },
             { id: 'ceo', label: 'CEO', keywords: ['ceo'], class: 'rank-owner' },
             { id: 'owner', label: 'Owner', keywords: ['owner'], class: 'rank-owner' },
+            { id: 'co-owner', label: 'Co-Owner', keywords: ['co-owner', 'coowner'], class: 'rank-owner' },
+            { id: 'sadmin', label: 'Super Admin', keywords: ['super admin', 'sadmin'], class: 'rank-dev' },
             { id: 'admin', label: 'Admin', keywords: ['admin'], class: 'rank-dev' },
-            { id: 'mod', label: 'Mod', keywords: ['mod'], class: 'rank-helper' }
+            { id: 'mod', label: 'Mod', keywords: ['mod', 'moderator'], class: 'rank-helper' },
+            { id: 'trial', label: 'Trial-Mod', keywords: ['trial-mod', 'trialmod'], class: 'rank-helper' },
+            { id: 'helper', label: 'Site-Helper', keywords: ['helper', 'site-helper'], class: 'rank-helper' }
         ];
 
         const getPfpHtml = (sizeClass = "w-8 h-8") => {
             return `<div class="${sizeClass} rounded-xl overflow-hidden bg-zinc-800 flex items-center justify-center border border-white/10 shadow-inner">
-                <img src="https://ui-avatars.com/api/?name=User&background=27272a&color=fff" class="pfp-img">
+                <img src="https://ui-avatars.com/api/?name=User&background=27272a&color=fff" class="pfp-img" onerror="this.src='https://ui-avatars.com/api/?name=User&background=27272a&color=fff'">
             </div>`;
         };
 
@@ -277,15 +287,15 @@
 
                 div.innerHTML = `
                     <div class="flex gap-3 max-w-[90%] group">
-                        <div onclick="openProfile('${data.username}')" class="shrink-0 cursor-pointer">
+                        <div onclick="openProfile('${data.username}')" class="shrink-0 cursor-pointer hover:opacity-80 transition-opacity">
                             ${getPfpHtml("w-9 h-9")}
                         </div>
                         <div class="bg-zinc-800/50 p-3.5 rounded-2xl border border-white/5">
                             <div class="flex items-center gap-2 mb-1">
-                                <span class="text-[10px] font-black text-zinc-400 uppercase italic">${data.username} ${getRankHtml(data.username)}</span>
+                                <span onclick="openProfile('${data.username}')" class="text-[10px] font-black text-zinc-400 uppercase italic cursor-pointer hover:text-white">${data.username} ${getRankHtml(data.username)}</span>
                                 <span class="text-[8px] opacity-30 font-bold">${now}</span>
                             </div>
-                            ${data.text ? `<p class="text-sm text-zinc-200">${data.text}</p>` : ''}
+                            ${data.text ? `<p class="text-sm text-zinc-200 leading-relaxed">${data.text}</p>` : ''}
                             ${mediaHtml}
                         </div>
                     </div>
@@ -304,8 +314,8 @@
             reader.onload = function(event) {
                 pendingFile = { data: event.target.result, type: file.type, name: file.name };
                 const input = document.getElementById('msg-input');
-                let tag = file.type.startsWith('audio') ? 'Audio' : 'Image';
-                input.value = `[${tag}: ${file.name}] `;
+                let tag = file.type.startsWith('audio') ? 'Audio' : 'File';
+                input.value = `[${tag}: ${file.name}] ` + input.value;
                 input.focus();
             };
             reader.readAsDataURL(file);
@@ -315,9 +325,10 @@
             e.preventDefault();
             const input = document.getElementById('msg-input');
             let text = input.value;
+            // Strip file tag if sending
             if (pendingFile) text = text.replace(/^\[(Image|Audio|File): .+?\] /, '').trim();
             if (text.trim() || pendingFile) {
-                socket.emit('message', {
+                socket.emit('sendMessage', {
                     username: profile.username,
                     text: text,
                     file: pendingFile ? pendingFile.data : null,
@@ -341,6 +352,11 @@
             document.getElementById('p-username').innerText = uname;
             document.getElementById('p-ranks').innerHTML = getRankHtml(uname);
             document.getElementById('p-likes').innerText = profileLikes[uname] || 0;
+            
+            const isOnline = onlineUsers.some(u => u.username === uname);
+            document.getElementById('p-lastseen').innerText = isOnline ? 'Active' : 'Away';
+            document.getElementById('p-lastseen').className = isOnline ? 'text-xs font-bold text-green-500' : 'text-xs font-bold text-zinc-500';
+            
             updateLikeUI();
             document.getElementById('profile-overlay').classList.add('active');
         }
@@ -377,19 +393,54 @@
             if(type === 'member') {
                 mBtn.className = "text-[10px] font-black uppercase tracking-widest text-indigo-400 border-b-2 border-indigo-400 pb-1";
                 sBtn.className = "text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-white pb-1 transition-colors";
-                content.innerHTML = `<div class="space-y-4"><div><p class="font-800 text-white uppercase italic text-xs">Respect</p><p>No harassment allowed.</p></div><div><p class="font-800 text-white uppercase italic text-xs">Appropriate Content</p><p>No NSFW content.</p></div></div>`;
+                content.innerHTML = `
+                    <div class="space-y-6">
+                        <div>
+                            <p class="font-800 text-white uppercase italic text-xs mb-2">Respect & Kindness</p>
+                            <p>Treat everyone with respect. Harassment, bullying, or hate speech will not be tolerated.</p>
+                        </div>
+                        <div>
+                            <p class="font-800 text-white uppercase italic text-xs mb-2">Appropriate Content</p>
+                            <p>No pornography, nudes, or graphic violence in any public room. This includes avatars.</p>
+                        </div>
+                        <div>
+                            <p class="font-800 text-white uppercase italic text-xs mb-2">No Advertising</p>
+                            <p>Do not promote other chat platforms or websites without permission.</p>
+                        </div>
+                        <div>
+                            <p class="font-800 text-white uppercase italic text-xs mb-2">No Spam</p>
+                            <p>Avoid flooding the chat with repeated messages or large images.</p>
+                        </div>
+                        <p class="text-[10px] font-black text-red-400 uppercase tracking-widest pt-4 italic">Violations result in mutes or bans.</p>
+                    </div>`;
             } else {
                 sBtn.className = "text-[10px] font-black uppercase tracking-widest text-indigo-400 border-b-2 border-indigo-400 pb-1";
                 mBtn.className = "text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-white pb-1 transition-colors";
-                content.innerHTML = `<div class="space-y-4"><div><p class="font-800 text-white uppercase italic text-xs">Professionalism</p><p>Staff must act neutral.</p></div></div>`;
+                content.innerHTML = `
+                    <div class="space-y-6">
+                        <div>
+                            <p class="font-800 text-white uppercase italic text-xs mb-2">Professionalism</p>
+                            <p>Handle situations professionally without personal bias. Staff actions should be fair.</p>
+                        </div>
+                        <div>
+                            <p class="font-800 text-white uppercase italic text-xs mb-2">No Power Abuse</p>
+                            <p>Do not use your rank to harass or unfairly punish users.</p>
+                        </div>
+                        <div>
+                            <p class="font-800 text-white uppercase italic text-xs mb-2">Confidentiality</p>
+                            <p>Do not share sensitive user information outside the staff team.</p>
+                        </div>
+                        <p class="text-[10px] font-black text-red-400 uppercase tracking-widest pt-4 italic">Violations lead to immediate demotion.</p>
+                    </div>`;
             }
         }
 
         function openStaffMenu() {
             const menu = document.getElementById('staff-rank-menu');
             menu.innerHTML = STAFF_RANKS.map(rank => `
-                <button onclick="viewStaffRank('${rank.id}')" class="staff-cat-btn w-full text-left px-4 py-3 rounded-xl border border-white/5 text-[10px] font-black uppercase tracking-widest group">
+                <button onclick="viewStaffRank('${rank.id}')" class="staff-cat-btn w-full text-left px-4 py-3 rounded-xl border border-white/5 text-[10px] font-black uppercase tracking-widest flex justify-between items-center group">
                     <span>${rank.label}</span>
+                    <svg class="w-3 h-3 opacity-20 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
                 </button>
             `).join('');
             document.getElementById('staff-modal').classList.add('active');
@@ -399,26 +450,63 @@
             const rank = STAFF_RANKS.find(r => r.id === rankId);
             const registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
             const display = document.getElementById('staff-user-display');
+            
+            document.querySelectorAll('.staff-cat-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText.includes(rank.label.toUpperCase()));
+            });
+
             document.getElementById('current-rank-label').innerText = `Lounge ${rank.label}s`;
             const staff = registry.filter(u => rank.keywords.some(k => u.username.toLowerCase().includes(k)));
-            display.innerHTML = staff.length ? staff.map(u => `<div class="bg-zinc-800/50 p-4 rounded-2xl flex items-center gap-4 border border-white/5 group">${getPfpHtml("w-10 h-10")}<div><p class="text-xs font-black text-white uppercase italic">${u.username}</p></div></div>`).join('') : `<p class="col-span-2 text-center text-[10px] font-black text-zinc-600 uppercase">Empty Rank</p>`;
+            
+            display.innerHTML = staff.length ? staff.map(u => `
+                <div onclick="openProfile('${u.username}'); closeModal('staff-modal')" class="bg-zinc-800/50 p-4 rounded-2xl flex items-center gap-4 border border-white/5 group hover:bg-zinc-800 cursor-pointer transition-all">
+                    ${getPfpHtml("w-10 h-10")}
+                    <div class="min-w-0">
+                        <p class="text-xs font-black text-white group-hover:text-indigo-400 truncate uppercase italic">${u.username}</p>
+                        <div class="flex items-center gap-1.5 mt-1">
+                             <div class="w-1.5 h-1.5 rounded-full ${onlineUsers.some(ou => ou.username === u.username) ? 'bg-green-500' : 'bg-zinc-600'}"></div>
+                             <span class="text-[8px] font-black text-zinc-500 uppercase">${onlineUsers.some(ou => ou.username === u.username) ? 'Online' : 'Offline'}</span>
+                        </div>
+                    </div>
+                </div>`).join('') : `<p class="col-span-2 text-center py-20 text-[10px] font-black text-zinc-600 uppercase tracking-widest italic">No members in this rank</p>`;
         }
 
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
         function logout() { localStorage.removeItem('chat_profile'); window.location.reload(); }
 
-        socket.on('update-users', (users) => {
+        socket.on('userListUpdate', (users) => {
             onlineUsers = users;
             const registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
             users.forEach(u => { if(!registry.some(r => r.username === u.username)) registry.push(u); });
             localStorage.setItem('user_registry', JSON.stringify(registry));
+            
             document.getElementById('online-list').innerHTML = users.map(u => `
                 <div class="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl cursor-pointer" onclick="openProfile('${u.username}')">
                     <div class="relative">${getPfpHtml("w-7 h-7")}<div class="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border border-zinc-900"></div></div>
-                    <span class="text-[11px] font-bold text-zinc-300">${u.username}</span>
+                    <span class="text-[11px] font-bold text-zinc-300 truncate">${u.username}</span>
+                </div>
+            `).join('');
+
+            const offline = registry.filter(r => !users.some(u => u.username === r.username));
+            document.getElementById('offline-list').innerHTML = offline.map(u => `
+                <div class="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl cursor-pointer" onclick="openProfile('${u.username}')">
+                    ${getPfpHtml("w-7 h-7")}
+                    <span class="text-[11px] font-bold text-zinc-300 truncate">${u.username}</span>
                 </div>
             `).join('');
         });
+
+        function filterSidebar() {
+            const q = document.getElementById('user-search').value.toLowerCase();
+            const items = document.querySelectorAll('#online-list > div, #offline-list > div');
+            items.forEach(el => {
+                const name = el.innerText.toLowerCase();
+                el.style.display = name.includes(q) ? 'flex' : 'none';
+            });
+        }
+        
+        // Init username
+        document.getElementById('my-username-display').innerText = profile.username;
     </script>
 </body>
 </html>
