@@ -1,1 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next Social | Real-time Feed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #030712;
+            color: #f9fafb;
+        }
+        .glass-nav {
+            background: rgba(3, 7, 18, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .post-card {
+            background: rgba(17, 24, 39, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .post-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+        .comment-box {
+            background: rgba(3, 7, 18, 0.4);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 10px;
+        }
+        .avatar-placeholder {
+            background-size: cover;
+            background-position: center;
+        }
+        .auth-screen {
+            background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
+        }
+        #loading-overlay {
+            background: #030712;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="custom-scrollbar">
 
+    <!-- Loading Screen -->
+    <div id="loading-overlay" class="fixed inset-0">
+        <div class="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+    </div>
+
+    <!-- Auth Screens -->
+    <div id="auth-container" class="fixed inset-0 z-[100] bg-[#030712] auth-screen hidden items-center justify-center px-4">
+        <div class="max-w-md w-full glass-nav p-8 rounded-3xl border border-white/10 shadow-2xl">
+            <div class="text-center mb-8">
+                <div class="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-600/20 italic mx-auto mb-4 text-xl">N</div>
+                <h1 id="auth-title" class="text-2xl font-extrabold tracking-tight">Welcome to Next</h1>
+                <p id="auth-subtitle" class="text-gray-400 text-sm mt-2">Sign in to join the conversation</p>
+            </div>
+
+            <div id="auth-error" class="hidden mb-4 p-3 bg-red-500/10 border border-red-500/50 text-red-400 text-xs rounded-lg text-center font-medium"></div>
+
+            <form id="auth-form" class="space-y-4">
+                <div id="reg-fields" class="hidden space-y-4">
+                    <input type="text" id="auth-name" placeholder="Full Name" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-all text-white">
+                </div>
+                <input type="text" id="auth-user" placeholder="Username" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-all text-white">
+                <input type="password" id="auth-pass" placeholder="Password" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-all text-white">
+                <button type="submit" id="auth-submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20">Sign In</button>
+            </form>
+
+            <p class="text-center mt-6 text-sm text-gray-500">
+                <span id="auth-toggle-text">Don't have an account?</span>
+                <button id="auth-toggle-btn" class="text-indigo-400 font-bold hover:underline">Sign Up</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- App UI -->
+    <div id="app-content" class="hidden">
+        <nav class="fixed top-0 w-full z-50 glass-nav">
+            <div class="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-600/20 italic">N</div>
+                    <span class="text-xl font-bold tracking-tight">Next</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-sm font-bold text-white leading-none" id="nav-user-display"></p>
+                        <p class="text-xs text-indigo-400 font-medium" id="nav-handle-display"></p>
+                    </div>
+                    <button onclick="logout()" class="w-10 h-10 rounded-full border border-white/10 avatar-placeholder hover:opacity-80 transition-opacity bg-indigo-900" id="nav-avatar"></button>
+                </div>
+            </div>
+        </nav>
+
+        <main class="pt-24 pb-12 px-4">
+            <div class="max-w-2xl mx-auto space-y-6">
+                <!-- Compose Area -->
+                <div class="post-card rounded-2xl p-5 shadow-2xl">
+                    <div class="flex gap-4">
+                        <div class="w-12 h-12 rounded-full border border-white/5 shrink-0 avatar-placeholder user-pfp-current bg-indigo-900"></div>
+                        <div class="flex-1 space-y-3">
+                            <textarea id="postInput" placeholder="What's on your mind?" class="w-full bg-transparent border-none focus:ring-0 text-lg resize-none placeholder:text-gray-600 min-h-[100px] text-white" maxlength="280"></textarea>
+                            <div class="flex items-center justify-between pt-3 border-t border-white/5">
+                                <div class="flex gap-2 text-gray-500 text-xs font-medium italic">
+                                    Multiplayer Feed • <span class="text-green-500" id="connection-status">Live</span>
+                                </div>
+                                <button onclick="addPost()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-7 py-2.5 rounded-full font-bold transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed" id="postBtn" disabled>
+                                    Post
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Feed Area -->
+                <div id="feed" class="space-y-6"></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- MULTIPLAYER SETUP (SOCKET.IO) ---
+        // In a real environment, you'd point this to your server.js address
+        const socket = io(); 
+
+        let currentUser = null;
+        let isSignUp = false;
+
+        const authContainer = document.getElementById('auth-container');
+        const appContent = document.getElementById('app-content');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const authForm = document.getElementById('auth-form');
+        const authError = document.getElementById('auth-error');
+        const postInput = document.getElementById('postInput');
+        const feed = document.getElementById('feed');
+        const postBtn = document.getElementById('postBtn');
+
+        // --- AUTH LOGIC ---
+        function initApp() {
+            const saved = localStorage.getItem('next_session');
+            if (saved) {
+                currentUser = JSON.parse(saved);
+                loginUser(currentUser);
+            } else {
+                showAuth();
+            }
+        }
+
+        function showAuth() {
+            loadingOverlay.classList.add('hidden');
+            authContainer.classList.remove('hidden');
+            authContainer.classList.add('flex');
+        }
+
+        document.getElementById('auth-toggle-btn').onclick = () => {
+            isSignUp = !isSignUp;
+            document.getElementById('auth-title').innerText = isSignUp ? "Create Account" : "Welcome to Next";
+            document.getElementById('auth-submit').innerText = isSignUp ? "Sign Up" : "Sign In";
+            document.getElementById('reg-fields').classList.toggle('hidden', !isSignUp);
+            authError.classList.add('hidden');
+        };
+
+        authForm.onsubmit = (e) => {
+            e.preventDefault();
+            const name = document.getElementById('auth-name').value.trim();
+            const handle = document.getElementById('auth-user').value.trim().toLowerCase();
+            const pass = document.getElementById('auth-pass').value;
+
+            if (!handle || !pass || (isSignUp && !name)) {
+                showError("Fields cannot be empty.");
+                return;
+            }
+
+            // In a classic Node.js server, we would emit a 'login' or 'register' event
+            // For now, we simulate the server response and store the session locally
+            const userData = { 
+                name: isSignUp ? name : (handle.charAt(0).toUpperCase() + handle.slice(1)), 
+                handle 
+            };
+            
+            loginUser(userData);
+        };
+
+        function showError(msg) {
+            authError.innerText = msg;
+            authError.classList.remove('hidden');
+        }
+
+        function loginUser(userData) {
+            currentUser = userData;
+            localStorage.setItem('next_session', JSON.stringify(userData));
+            
+            loadingOverlay.classList.add('hidden');
+            authContainer.classList.add('hidden');
+            authContainer.classList.remove('flex');
+            appContent.classList.remove('hidden');
+
+            document.getElementById('nav-user-display').innerText = userData.name;
+            document.getElementById('nav-handle-display').innerText = '@' + userData.handle;
+            
+            const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name)}&background=4f46e5&color=fff`;
+            document.getElementById('nav-avatar').style.backgroundImage = `url('${avatarUrl}')`;
+            document.querySelectorAll('.user-pfp-current').forEach(el => el.style.backgroundImage = `url('${avatarUrl}')`);
+            
+            postInput.placeholder = `What's on your mind, ${userData.name.split(' ')[0]}?`;
+            
+            // Join the global room on the server
+            socket.emit('join-room', 'global-feed');
+        }
+
+        window.logout = () => {
+            localStorage.removeItem('next_session');
+            location.reload();
+        };
+
+        // --- REAL-TIME EVENT HANDLERS ---
+        socket.on('feed-update', (posts) => {
+            renderFeed(posts);
+        });
+
+        socket.on('connect', () => {
+            document.getElementById('connection-status').innerText = 'Live';
+            document.getElementById('connection-status').className = 'text-green-500';
+        });
+
+        socket.on('disconnect', () => {
+            document.getElementById('connection-status').innerText = 'Reconnecting...';
+            document.getElementById('connection-status').className = 'text-yellow-500';
+        });
+
+        function renderFeed(postsList) {
+            feed.innerHTML = postsList.map(post => {
+                const isLiked = post.likedBy.includes(currentUser.handle);
+                const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(post.user)}&background=312e81&color=fff`;
+                
+                return `
+                <div class="post-card rounded-2xl overflow-hidden shadow-xl" id="post-${post.id}">
+                    <div class="p-6">
+                        <div class="flex gap-4">
+                            <div class="w-12 h-12 rounded-full border border-white/10 shrink-0 avatar-placeholder" style="background-image: url('${avatarUrl}')"></div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-bold text-gray-100">${post.user}</span>
+                                    <span class="text-gray-500 text-sm">@${post.handle}</span>
+                                </div>
+                                <p class="text-gray-300 leading-relaxed text-[17px]">${post.content}</p>
+                                
+                                <div class="flex items-center gap-8 mt-6 text-gray-500">
+                                    <button onclick="toggleLike('${post.id}')" class="flex items-center gap-2 group transition-colors ${isLiked ? 'text-pink-500' : 'hover:text-pink-500'}">
+                                        <svg class="w-5 h-5 ${isLiked ? 'fill-current' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                        </svg>
+                                        <span class="text-sm font-medium">${post.likedBy.length}</span>
+                                    </button>
+                                    <button onclick="document.getElementById('comment-input-${post.id}').focus()" class="flex items-center gap-2 hover:text-indigo-400 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                        </svg>
+                                        <span class="text-sm font-medium">${post.comments.length}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="comment-box p-4 px-6 space-y-3">
+                        ${post.comments.map(c => `
+                            <div class="flex gap-3 text-sm">
+                                <span class="font-bold text-gray-200 shrink-0">${c.user}</span>
+                                <span class="text-gray-400">${c.content}</span>
+                            </div>
+                        `).join('')}
+                        <div class="flex gap-3 mt-4">
+                            <div class="w-8 h-8 rounded-full border border-white/5 shrink-0 avatar-placeholder" style="background-image: url('${avatarUrl}')"></div>
+                            <input type="text" placeholder="Add a comment..." id="comment-input-${post.id}" 
+                                onkeypress="handleComment(event, '${post.id}')"
+                                class="w-full bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-sm focus:outline-none focus:border-indigo-500/50 text-gray-200">
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // --- ACTIONS ---
+        window.addPost = () => {
+            const content = postInput.value.trim();
+            if (!content || !currentUser) return;
+            
+            socket.emit('new-post', {
+                user: currentUser.name,
+                handle: currentUser.handle,
+                content: content
+            });
+
+            postInput.value = '';
+            postBtn.disabled = true;
+        };
+
+        window.toggleLike = (postId) => {
+            socket.emit('toggle-like', { postId, handle: currentUser.handle });
+        };
+
+        window.handleComment = (e, postId) => {
+            if (e.key === 'Enter') {
+                const content = e.target.value.trim();
+                if (!content) return;
+                
+                socket.emit('new-comment', {
+                    postId,
+                    user: currentUser.name,
+                    content: content
+                });
+                
+                e.target.value = '';
+            }
+        };
+
+        postInput.addEventListener('input', () => { 
+            postBtn.disabled = !postInput.value.trim(); 
+        });
+
+        // Initialize the app
+        initApp();
+    </script>
+</body>
+</html>
