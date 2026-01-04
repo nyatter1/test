@@ -8,7 +8,6 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 // Middleware to serve static files from the root directory
-// This ensures index.html, chat_app.html, etc., are accessible
 app.use(express.static(__dirname));
 
 // Route for the main landing page (Signup/Login)
@@ -21,8 +20,10 @@ app.get('/chat', (req, res) => {
     res.sendFile(path.join(__dirname, 'chat_app.html'));
 });
 
-// In-memory store for active users
+// In-memory stores
 let onlineUsers = [];
+// Persistent registry to track users even when they go offline (for Staff list visibility)
+let userRegistry = []; 
 
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
@@ -37,10 +38,21 @@ io.on('connection', (socket) => {
             username: profile.username,
             age: profile.age,
             gender: profile.gender,
-            uid: profile.uid
+            uid: profile.uid || socket.id
         };
 
+        // Add to online list
         onlineUsers.push(userData);
+
+        // Update the global registry if this is a new user
+        const existingIndex = userRegistry.findIndex(u => u.username.toLowerCase() === profile.username.toLowerCase());
+        if (existingIndex === -1) {
+            userRegistry.push({
+                username: userData.username,
+                uid: userData.uid,
+                isStaff: /dev|owner|helper|admin|mod/i.test(userData.username) // Auto-detect staff based on name
+            });
+        }
 
         // Notify everyone that a new user joined
         io.emit('message', {
@@ -49,8 +61,10 @@ io.on('connection', (socket) => {
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
 
-        // Broadcast the updated user list to all clients
+        // Broadcast the updated user list AND the full registry to all clients
+        // The client uses the registry to build the 'Offline' and 'Staff' sections
         io.emit('userListUpdate', onlineUsers);
+        io.emit('registryUpdate', userRegistry);
     });
 
     // Handle incoming chat messages (Public)
@@ -71,7 +85,6 @@ io.on('connection', (socket) => {
         const sender = onlineUsers.find(u => u.id === socket.id);
         if (!sender || !data.target || !data.text) return;
 
-        // Find the recipient in the online users list
         const recipient = onlineUsers.find(u => 
             u.username.toLowerCase() === data.target.toLowerCase()
         );
@@ -83,11 +96,8 @@ io.on('connection', (socket) => {
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 isPrivate: true
             };
-
-            // Send specifically to the recipient's socket ID
             io.to(recipient.id).emit('privateMessage', dmPayload);
         } else {
-            // Notify sender if user is offline
             socket.emit('message', {
                 system: true,
                 text: `User ${data.target} is currently offline.`,
@@ -110,8 +120,9 @@ io.on('connection', (socket) => {
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             });
 
-            // Update user list for everyone
+            // Update online user list for everyone
             io.emit('userListUpdate', onlineUsers);
+            // We keep them in userRegistry so they still appear in "Staff" or "Offline"
         }
         console.log('User disconnected:', socket.id);
     });
