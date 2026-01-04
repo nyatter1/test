@@ -37,8 +37,8 @@
             display: none;
             align-items: center;
             justify-content: center;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(8px);
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(12px);
         }
         .modal-overlay.active { display: flex; }
 
@@ -50,6 +50,10 @@
 
         .info-card { transition: transform 0.2s ease; }
         .info-card:not(.disabled):hover { transform: translateY(-2px); }
+
+        .staff-cat-btn { transition: all 0.2s ease; }
+        .staff-cat-btn:hover { background: rgba(255, 255, 255, 0.05); }
+        .staff-cat-btn.active { background: rgba(79, 70, 229, 0.1); border-color: rgba(79, 70, 229, 0.4); color: #818cf8; }
     </style>
 </head>
 <body class="h-screen flex p-4 gap-4 relative overflow-hidden">
@@ -74,7 +78,7 @@
         </div>
         <div class="p-4 border-t border-zinc-800 bg-zinc-900/30 flex items-center justify-between">
             <div class="flex items-center gap-2 cursor-pointer group" onclick="openProfile(profile.username)">
-                <div id="my-pfp-placeholder" class="w-8 h-8 rounded-lg pfp-main bg-zinc-800 flex items-center justify-center text-[10px] font-bold">ME</div>
+                <div id="my-pfp-container" class="w-8 h-8 rounded-lg pfp-main flex items-center justify-center text-[10px] font-bold bg-zinc-800"></div>
                 <span class="text-xs font-bold group-hover:text-indigo-400 transition-colors" id="my-username-display">User</span>
             </div>
             <button onclick="logout()" class="text-[10px] font-black text-zinc-600 hover:text-red-400 uppercase tracking-widest transition-colors">Exit</button>
@@ -115,7 +119,7 @@
                 </div>
             </button>
 
-            <button onclick="openStaffList()" class="info-card w-full bg-zinc-900/50 border border-white/5 p-4 rounded-2xl flex items-center gap-4 hover:bg-emerald-500/10 hover:border-emerald-500/30 group">
+            <button onclick="openStaffMenu()" class="info-card w-full bg-zinc-900/50 border border-white/5 p-4 rounded-2xl flex items-center gap-4 hover:bg-emerald-500/10 hover:border-emerald-500/30 group">
                 <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                 </div>
@@ -155,14 +159,24 @@
 
     <!-- Staff Directory Modal -->
     <div id="staff-modal" class="modal-overlay">
-        <div class="w-full max-w-lg bg-zinc-900 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
-            <div class="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
-                <h3 class="text-xs font-black uppercase tracking-widest text-emerald-400 italic">Lounge Staff Directory</h3>
-                <button onclick="closeModal('staff-modal')" class="text-zinc-500 hover:text-white transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
+        <div class="w-full max-w-4xl bg-zinc-900 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl flex h-[80vh]">
+            <!-- Staff Navigation (Left side of modal) -->
+            <div class="w-56 border-r border-zinc-800 bg-zinc-900/50 p-6 flex flex-col gap-2">
+                <h3 class="text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-4">RANKS</h3>
+                <div id="staff-rank-menu" class="space-y-1"></div>
             </div>
-            <div id="staff-roles-container" class="p-6 max-h-[70vh] overflow-y-auto space-y-3"></div>
+            <!-- Staff User List (Right side of modal) -->
+            <div class="flex-1 flex flex-col">
+                <div class="p-6 border-b border-zinc-800 flex justify-between items-center">
+                    <h3 id="current-rank-label" class="text-xs font-black uppercase tracking-widest text-emerald-400 italic">Select a Rank</h3>
+                    <button onclick="closeModal('staff-modal')" class="text-zinc-500 hover:text-white transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div id="staff-user-display" class="p-6 flex-1 overflow-y-auto grid grid-cols-2 gap-4 content-start">
+                    <div class="col-span-2 text-center py-20 opacity-20 italic text-sm">Select a rank from the left to view staff members.</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -173,7 +187,7 @@
             <div class="px-6 pb-8 text-center -mt-12">
                 <div class="relative inline-block mb-4">
                     <div class="p-1 bg-zinc-900 rounded-3xl">
-                        <div id="p-pfp-placeholder" class="w-24 h-24 rounded-[1.8rem] border-4 border-zinc-900 bg-zinc-800 flex items-center justify-center text-2xl font-black">??</div>
+                        <div id="p-pfp-large" class="w-24 h-24 rounded-[1.8rem] border-4 border-zinc-900 flex items-center justify-center text-3xl font-black bg-zinc-800 shadow-xl"></div>
                     </div>
                     <button id="p-like-btn" class="like-btn unliked absolute -right-2 bottom-0 border border-white/10 p-2.5 rounded-2xl shadow-xl">
                         <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
@@ -184,7 +198,7 @@
                 <div class="grid grid-cols-3 gap-2 mb-6">
                     <div class="bg-zinc-800/50 p-3 rounded-2xl border border-white/5">
                         <p class="text-[8px] font-black text-zinc-500 uppercase mb-1">Details</p>
-                        <p id="p-details" class="text-xs font-bold text-zinc-200">18 / M</p>
+                        <p id="p-details" class="text-xs font-bold text-zinc-200">?? / ?</p>
                     </div>
                     <div class="bg-zinc-800/50 p-3 rounded-2xl border border-white/5">
                         <p class="text-[8px] font-black text-zinc-500 uppercase mb-1">Likes</p>
@@ -211,30 +225,47 @@
         let offlineUsers = [];
         let currentViewedUser = null;
 
-        // Staff Rank Definitions and keywords
-        const STAFF_CONFIG = [
-            { label: 'Developer', keywords: ['dev'], class: 'rank-dev' },
-            { label: 'Owner', keywords: ['owner', 'ceo', 'co-owner'], class: 'rank-owner' },
-            { label: 'Helper', keywords: ['helper', 'site-helper'], class: 'rank-helper' },
-            { label: 'Staff', keywords: ['admin', 'mod', 'trial-mod'], class: 'rank-dev' }
+        // Staff Rank Definitions with refined keywords
+        const STAFF_RANKS = [
+            { id: 'dev', label: 'Developer', keywords: ['dev'], class: 'rank-dev' },
+            { id: 'ceo', label: 'CEO', keywords: ['ceo'], class: 'rank-owner' },
+            { id: 'owner', label: 'Owner', keywords: ['owner'], class: 'rank-owner' },
+            { id: 'co-owner', label: 'Co-Owner', keywords: ['co-owner', 'coowner'], class: 'rank-owner' },
+            { id: 'sadmin', label: 'Super Admin', keywords: ['super admin', 'sadmin'], class: 'rank-dev' },
+            { id: 'admin', label: 'Admin', keywords: ['admin'], class: 'rank-dev' },
+            { id: 'mod', label: 'Mod', keywords: ['mod', 'moderator'], class: 'rank-helper' },
+            { id: 'trial', label: 'Trial-Mod', keywords: ['trial-mod', 'trialmod'], class: 'rank-helper' },
+            { id: 'helper', label: 'Site-Helper', keywords: ['helper', 'site-helper'], class: 'rank-helper' }
         ];
 
-        document.getElementById('my-username-display').innerText = profile.username;
-        document.getElementById('my-pfp-placeholder').innerText = profile.username.substring(0, 2).toUpperCase();
-
-        // Helper to check for staff ranks based on username
-        const getRankInfo = (uname) => {
-            if (!uname) return null;
-            const n = uname.toLowerCase();
-            for (const config of STAFF_CONFIG) {
-                if (config.keywords.some(k => n.includes(k))) return config;
-            }
-            return null;
+        // --- PFP SYSTEM ---
+        const getPfpColor = (uname) => {
+            const colors = ['bg-indigo-600', 'bg-emerald-600', 'bg-rose-600', 'bg-amber-600', 'bg-fuchsia-600', 'bg-sky-600'];
+            let hash = 0;
+            for (let i = 0; i < uname.length; i++) hash = uname.charCodeAt(i) + ((hash << 5) - hash);
+            return colors[Math.abs(hash) % colors.length];
         };
 
+        const createPfp = (uname, sizeClass = "w-8 h-8") => {
+            const initials = uname.substring(0, 2).toUpperCase();
+            const color = getPfpColor(uname);
+            return `<div class="${sizeClass} rounded-xl ${color} flex items-center justify-center text-[10px] font-black border border-white/10 text-white shadow-inner">${initials}</div>`;
+        };
+
+        const setupMyPfp = () => {
+            document.getElementById('my-username-display').innerText = profile.username;
+            document.getElementById('my-pfp-container').innerHTML = createPfp(profile.username);
+        };
+
+        setupMyPfp();
+
+        // Helper to check for staff ranks based on username
         const getRankHtml = (uname) => {
-            const rank = getRankInfo(uname);
-            if (rank) return `<span class="rank-badge ${rank.class}">| ${rank.label} |</span>`;
+            if (!uname) return '';
+            const n = uname.toLowerCase();
+            for (const r of STAFF_RANKS) {
+                if (r.keywords.some(k => n.includes(k))) return `<span class="rank-badge ${r.class}">| ${r.label} |</span>`;
+            }
             return '<span class="rank-badge rank-vip">| MEMBER |</span>';
         };
 
@@ -252,7 +283,9 @@
                 div.className = `flex justify-start animate-in slide-in-from-left-2 duration-200`;
                 div.innerHTML = `
                     <div class="flex gap-3 max-w-[90%] group">
-                        <div onclick="openProfile('${data.username}')" class="w-9 h-9 rounded-xl shrink-0 pfp-main cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-center text-[10px] font-bold bg-zinc-800 border border-white/5">${data.username.substring(0, 2).toUpperCase()}</div>
+                        <div onclick="openProfile('${data.username}')" class="shrink-0 pfp-main cursor-pointer hover:opacity-80 transition-opacity">
+                            ${createPfp(data.username, "w-9 h-9")}
+                        </div>
                         <div class="bg-zinc-800/50 p-3.5 rounded-2xl border border-white/5">
                             <div class="flex items-center gap-2 mb-1">
                                 <span onclick="openProfile('${data.username}')" class="text-[10px] font-black text-zinc-400 uppercase italic cursor-pointer hover:text-white">${data.username} ${getRankHtml(data.username)}</span>
@@ -269,24 +302,10 @@
 
         socket.on('userListUpdate', (users) => {
             onlineUsers = users;
-            // Update the registry (Local storage persistent user database)
             const registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
-            users.forEach(u => { 
-                if(!registry.some(r => r.username === u.username)) registry.push(u); 
-            });
+            users.forEach(u => { if(!registry.some(r => r.username === u.username)) registry.push(u); });
             localStorage.setItem('user_registry', JSON.stringify(registry));
-            
             offlineUsers = registry.filter(r => !users.some(u => u.username === r.username));
-            filterSidebar();
-        });
-
-        // Registry Update handler (if server supports it for full database sync)
-        socket.on('registryUpdate', (fullRegistry) => {
-            localStorage.setItem('user_registry', JSON.stringify(fullRegistry));
-            onlineUsers.forEach(u => {
-                 if(!fullRegistry.some(r => r.username === u.username)) fullRegistry.push(u);
-            });
-            offlineUsers = fullRegistry.filter(r => !onlineUsers.some(u => u.username === r.username));
             filterSidebar();
         });
 
@@ -306,49 +325,103 @@
             if(type === 'member') {
                 mBtn.className = "text-[10px] font-black uppercase tracking-widest text-indigo-400 border-b-2 border-indigo-400 pb-1";
                 sBtn.className = "text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-white pb-1 transition-colors";
-                content.innerHTML = `<div class="space-y-4"><p class="font-bold text-white uppercase italic">1. Be Respectful</p><p>No harassment or toxic behavior.</p><p class="font-bold text-white uppercase italic">2. No Spam</p><p>Keep the chat clean.</p></div>`;
+                content.innerHTML = `
+                    <div class="space-y-6">
+                        <div>
+                            <p class="font-800 text-white uppercase italic text-xs mb-2">Respect & Kindness</p>
+                            <p>Treat everyone with respect. Harassment, bullying, or hate speech will not be tolerated.</p>
+                        </div>
+                        <div>
+                            <p class="font-800 text-white uppercase italic text-xs mb-2">Appropriate Content</p>
+                            <p>No pornography, nudes, or any graphic images (blood, violence, etc.) in any public room. This includes avatars and profile content.</p>
+                        </div>
+                        <div>
+                            <p class="font-800 text-white uppercase italic text-xs mb-2">No Advertising</p>
+                            <p>Do not promote other chat platforms, websites, or social media channels without explicit permission from a Staff member.</p>
+                        </div>
+                        <div>
+                            <p class="font-800 text-white uppercase italic text-xs mb-2">No Spam</p>
+                            <p>Avoid flooding the chat with repeated messages, large images, or nonsensical text. Keep the chat clean for everyone.</p>
+                        </div>
+                        <div>
+                            <p class="font-800 text-white uppercase italic text-xs mb-2">Staff Decisions</p>
+                            <p>The Staff Team works hard to keep this community safe and enjoyable. Their decisions are final. Please respect them.</p>
+                        </div>
+                        <p class="text-[10px] font-black text-red-400 uppercase tracking-widest pt-4">Breaking these rules may result in a warning, a mute, a kick, or a permanent ban.</p>
+                    </div>`;
             } else {
                 sBtn.className = "text-[10px] font-black uppercase tracking-widest text-indigo-400 border-b-2 border-indigo-400 pb-1";
                 mBtn.className = "text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-white pb-1 transition-colors";
-                content.innerHTML = `<div class="space-y-4"><p class="font-bold text-white uppercase italic">1. Integrity</p><p>Permissions are for moderation only.</p><p class="font-bold text-white uppercase italic">2. Confidentiality</p><p>Staff info stays internal.</p></div>`;
+                content.innerHTML = `
+                    <div class="space-y-6">
+                        <div>
+                            <p class="font-800 text-white uppercase italic text-xs mb-2">Professionalism</p>
+                            <p>Handle all situations professionally and without personal bias. Staff actions should be for the good of the community, not personal grudges.</p>
+                        </div>
+                        <div>
+                            <p class="font-800 text-white uppercase italic text-xs mb-2">No Power Abuse</p>
+                            <p>Do not use your rank or abilities to harass, threaten, or unfairly punish users. This includes muting, kicking, or banning without a valid reason.</p>
+                        </div>
+                        <div>
+                            <p class="font-800 text-white uppercase italic text-xs mb-2">User Profile Privacy</p>
+                            <p>Do not edit a user's profile information (mood, about me, etc.) without their explicit consent. Unauthorized modifications will lead to immediate demotion.</p>
+                        </div>
+                        <div>
+                            <p class="font-800 text-white uppercase italic text-xs mb-2">Confidentiality</p>
+                            <p>Do not share or discuss any sensitive user information (IPs, emails, private reports) with anyone outside of the authorized Staff Team.</p>
+                        </div>
+                        <p class="text-[10px] font-black text-red-400 uppercase tracking-widest pt-4">Violating these rules will result in a demotion from your Staff rank.</p>
+                    </div>`;
             }
         }
 
-        function openStaffList() {
-            const container = document.getElementById('staff-roles-container');
-            container.innerHTML = '';
+        // --- NEW STAFF MENU LOGIC ---
+        function openStaffMenu() {
+            const menu = document.getElementById('staff-rank-menu');
+            const userDisplay = document.getElementById('staff-user-display');
+            
+            menu.innerHTML = STAFF_RANKS.map(rank => `
+                <button onclick="viewStaffRank('${rank.id}')" class="staff-cat-btn w-full text-left px-4 py-3 rounded-xl border border-white/5 text-[10px] font-black uppercase tracking-widest flex justify-between items-center group">
+                    <span>${rank.label}</span>
+                    <svg class="w-3 h-3 opacity-20 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
+                </button>
+            `).join('');
+
+            userDisplay.innerHTML = `<div class="col-span-2 text-center py-20 opacity-20 italic text-sm">Select a rank from the left to view staff members.</div>`;
+            document.getElementById('current-rank-label').innerText = "Select a Rank";
+            document.getElementById('staff-modal').classList.add('active');
+        }
+
+        function viewStaffRank(rankId) {
+            const rank = STAFF_RANKS.find(r => r.id === rankId);
             const registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
-
-            STAFF_CONFIG.forEach(config => {
-                const assigned = registry.filter(u => {
-                    const uname = u.username.toLowerCase();
-                    return config.keywords.some(k => uname.includes(k));
-                });
-
-                const roleDiv = document.createElement('div');
-                roleDiv.className = "bg-zinc-800/40 p-4 rounded-2xl border border-white/5";
-                
-                let usersHtml = '';
-                if(assigned.length > 0) {
-                    usersHtml = assigned.map(u => `
-                        <div onclick="openProfile('${u.username}'); closeModal('staff-modal')" class="flex items-center gap-2 mt-2 cursor-pointer group">
-                            <div class="w-6 h-6 rounded-lg bg-zinc-700 flex items-center justify-center text-[8px] font-bold border border-white/10 uppercase">${u.username.substring(0, 2)}</div>
-                            <span class="text-xs font-bold text-zinc-200 group-hover:text-indigo-400 transition-colors">${u.username}</span>
-                            <div class="w-1.5 h-1.5 rounded-full ${onlineUsers.some(ou => ou.username === u.username) ? 'bg-green-500' : 'bg-zinc-600'}"></div>
-                        </div>
-                    `).join('');
-                } else {
-                    usersHtml = `<p class="text-[9px] font-bold text-zinc-600 mt-2 uppercase italic tracking-wider">Yet To Come</p>`;
-                }
-
-                roleDiv.innerHTML = `
-                    <p class="text-[10px] font-black text-indigo-400/70 uppercase tracking-[0.2em] mb-1">${config.label}</p>
-                    <div class="flex flex-col gap-1">${usersHtml}</div>
-                `;
-                container.appendChild(roleDiv);
+            const userDisplay = document.getElementById('staff-user-display');
+            
+            // UI Toggle active state
+            document.querySelectorAll('.staff-cat-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText.includes(rank.label.toUpperCase()));
             });
 
-            document.getElementById('staff-modal').classList.add('active');
+            document.getElementById('current-rank-label').innerText = `Lounge ${rank.label}s`;
+            
+            const staffMembers = registry.filter(u => rank.keywords.some(k => u.username.toLowerCase().includes(k)));
+
+            if(staffMembers.length === 0) {
+                userDisplay.innerHTML = `<div class="col-span-2 text-center py-20 text-zinc-600 text-[10px] font-black uppercase tracking-widest">No ${rank.label}s Active Currently</div>`;
+            } else {
+                userDisplay.innerHTML = staffMembers.map(u => `
+                    <div onclick="openProfile('${u.username}'); closeModal('staff-modal')" class="bg-zinc-800/50 border border-white/5 p-4 rounded-2xl flex items-center gap-4 cursor-pointer hover:bg-zinc-800 transition-all group">
+                        ${createPfp(u.username, "w-10 h-10")}
+                        <div class="min-w-0">
+                            <p class="text-xs font-black text-white group-hover:text-indigo-400 truncate uppercase italic">${u.username}</p>
+                            <div class="flex items-center gap-1.5 mt-1">
+                                <div class="w-1.5 h-1.5 rounded-full ${onlineUsers.some(ou => ou.username === u.username) ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-zinc-600'}"></div>
+                                <span class="text-[8px] font-black text-zinc-500 uppercase tracking-widest">${onlineUsers.some(ou => ou.username === u.username) ? 'Online' : 'Offline'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
         }
 
         // Profile Logic
@@ -357,17 +430,14 @@
             document.getElementById('p-username').innerText = username;
             document.getElementById('p-ranks').innerHTML = getRankHtml(username);
             document.getElementById('p-likes').innerText = profileLikes[username] || 0;
-            document.getElementById('p-pfp-placeholder').innerText = username.substring(0, 2).toUpperCase();
+            document.getElementById('p-pfp-large').innerHTML = username.substring(0, 2).toUpperCase();
+            document.getElementById('p-pfp-large').className = `w-24 h-24 rounded-[1.8rem] border-4 border-zinc-900 flex items-center justify-center text-3xl font-black shadow-xl text-white ${getPfpColor(username)}`;
+            
             updateLikeButtonUI();
             
             const isOnline = onlineUsers.some(u => u.username === username);
             document.getElementById('p-lastseen').innerText = isOnline ? 'Active' : 'Away';
             document.getElementById('p-lastseen').className = isOnline ? 'text-xs font-bold text-green-500' : 'text-xs font-bold text-zinc-500';
-
-            const regUser = JSON.parse(localStorage.getItem('user_registry') || '[]').find(u => u.username === username);
-            if (regUser) {
-                document.getElementById('p-details').innerText = `${regUser.age || '??'} / ${regUser.gender ? regUser.gender.charAt(0) : '?'}`;
-            }
 
             document.getElementById('profile-overlay').classList.add('active');
         }
@@ -407,7 +477,7 @@
             document.getElementById(id).innerHTML = users.map(u => `
                 <div class="flex items-center justify-between p-2.5 rounded-2xl hover:bg-white/5 transition-all group cursor-pointer" onclick="openProfile('${u.username}')">
                     <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-8 h-8 rounded-xl shrink-0 bg-zinc-800 border border-white/5 flex items-center justify-center text-[10px] font-bold uppercase">${u.username.substring(0, 2)}</div>
+                        ${createPfp(u.username, "w-8 h-8")}
                         <div class="truncate">
                             <div class="flex items-center truncate">
                                 <span class="text-xs font-bold text-zinc-200 truncate group-hover:text-indigo-400">${u.username}</span>
