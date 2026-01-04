@@ -11,13 +11,16 @@ const io = new Server(server);
 // Map of socket.id -> { username, age, gender, joined, rank }
 const users = new Map();
 
+// Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
+    // Fixed path to point directly to public/index.html
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.get('/chat', (req, res) => {
+    // Fixed path to point directly to public/chat_app.html
     res.sendFile(path.join(__dirname, 'public', 'chat_app.html'));
 });
 
@@ -48,7 +51,7 @@ io.on('connection', (socket) => {
         if (user) {
             io.emit('message', {
                 username: user.username,
-                text: data.text,
+                text: typeof data === 'string' ? data : data.text,
                 system: false
             });
         }
