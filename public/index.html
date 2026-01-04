@@ -1,448 +1,226 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blocky World | Multiplayer</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <style>
-        :root {
-            --primary: #ffcc00;
-            --primary-hover: #ffd633;
-            --accent: #ff4757;
-            --bg-overlay: rgba(0, 0, 0, 0.6);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login | SocialChat Online</title>
+<!-- We use a modern sans-serif font stack -->
+<style>
+:root {
+--primary-blue: #0095f6;
+--bg-gray: #fafafa;
+--border-color: #dbdbdb;
+--text-dark: #262626;
+--text-gray: #8e8e8e;
+}
 
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
-            background-color: #000;
-        }
-        
-        canvas { display: block; }
-        
-        #game-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: radial-gradient(circle, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.8) 100%);
-            z-index: 100;
-            transition: all 0.5s ease;
-        }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--bg-gray);
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        color: var(--text-dark);
+    }
 
-        .menu-container {
-            background: #ffffff;
-            padding: 40px;
-            border-radius: 30px;
-            border: 8px solid #333;
-            box-shadow: 0 15px 0 #222;
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
+    .auth-container {
+        width: 100%;
+        max-width: 350px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
 
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-            color: #333;
-            text-transform: uppercase;
-            letter-spacing: -2px;
-            -webkit-text-stroke: 2px #333;
-            text-shadow: 4px 4px 0px #eee;
-        }
+    .auth-box {
+        background: white;
+        border: 1px solid var(--border-color);
+        padding: 20px 40px;
+        text-align: center;
+        border-radius: 1px;
+    }
 
-        .input-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
+    .logo {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 20px 0;
+        letter-spacing: -1px;
+        background: -webkit-linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
 
-        label {
-            display: block;
-            font-weight: 800;
-            text-transform: uppercase;
-            font-size: 0.7rem;
-            color: #666;
-            margin-bottom: 5px;
-            margin-left: 10px;
-        }
+    .auth-form {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
 
-        input#username-input {
-            width: 100%;
-            padding: 15px;
-            border: 4px solid #333;
-            border-radius: 15px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            box-sizing: border-box;
-            outline: none;
-            background: #f0f0f0;
-        }
+    input {
+        background: #fafafa;
+        border: 1px solid var(--border-color);
+        border-radius: 3px;
+        padding: 9px 7px;
+        font-size: 12px;
+        outline: none;
+    }
 
-        .btn-group {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
+    input:focus {
+        border-color: #a8a8a8;
+    }
 
-        .game-btn {
-            background: var(--primary);
-            border: 4px solid #333;
-            border-radius: 15px;
-            padding: 15px 30px;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #333;
-            cursor: pointer;
-            box-shadow: 0 8px 0 #b38f00;
-            transition: all 0.1s;
-            text-transform: uppercase;
-        }
+    button {
+        background-color: var(--primary-blue);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 7px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 8px;
+        font-size: 14px;
+    }
 
-        .game-btn:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 10px 0 #b38f00; }
-        .game-btn:active { transform: translateY(6px); box-shadow: 0 2px 0 #b38f00; }
+    button:disabled {
+        opacity: 0.5;
+        cursor: default;
+    }
 
-        #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 20px;
-            height: 20px;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            display: none;
-        }
-        #crosshair::before { content: ''; position: absolute; background: white; border: 1px solid black; width: 2px; height: 20px; left: 9px; }
-        #crosshair::after { content: ''; position: absolute; background: white; border: 1px solid black; width: 20px; height: 2px; top: 9px; }
+    .divider {
+        display: flex;
+        align-items: center;
+        margin: 20px 0;
+        color: var(--text-gray);
+        font-size: 13px;
+        font-weight: 600;
+    }
 
-        #stats-ui {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: #333;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 15px;
-            border: 3px solid #000;
-            font-weight: bold;
-            pointer-events: none;
-            display: none;
-            font-size: 12px;
-        }
+    .divider::before, .divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border-color);
+    }
 
-        .hidden { display: none !important; }
-        
-        /* Name labels for players */
-        .player-label {
-            position: absolute;
-            padding: 2px 8px;
-            background: rgba(0,0,0,0.5);
-            color: white;
-            border-radius: 4px;
-            font-size: 12px;
-            pointer-events: none;
-            transform: translate(-50%, -100%);
-            white-space: nowrap;
-            font-weight: bold;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-    </style>
+    .divider span {
+        padding: 0 18px;
+    }
+
+    .switch-box {
+        background: white;
+        border: 1px solid var(--border-color);
+        padding: 20px;
+        text-align: center;
+        font-size: 14px;
+    }
+
+    .switch-link {
+        color: var(--primary-blue);
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .error-msg {
+        color: #ed4956;
+        font-size: 12px;
+        margin-top: 15px;
+        display: none;
+    }
+</style>
+
+
 </head>
 <body>
 
-    <div id="game-overlay">
-        <div class="menu-container">
-            <h1>BLOCKY WORLD</h1>
-            <div class="input-group">
-                <label>Identify Yourself</label>
-                <input type="text" id="username-input" placeholder="Enter Username..." maxlength="12">
-            </div>
-            <div class="btn-group">
-                <button id="start-btn" class="game-btn">Enter World</button>
-            </div>
-            <p style="margin-top: 20px; color: #666; font-size: 0.8rem; font-weight: bold; text-transform: uppercase;">WASD to move • Mouse to look</p>
+<div class="auth-container">
+    <!-- Login/Signup Box -->
+    <div class="auth-box" id="auth-box">
+        <div class="logo">SocialChat</div>
+        
+        <form class="auth-form" id="login-form" onsubmit="handleAuth(event, 'login')">
+            <input type="text" id="username" placeholder="Phone number, username, or email" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit" id="submit-btn">Log In</button>
+        </form>
+
+        <div class="divider">
+            <span>OR</span>
         </div>
+
+        <div style="color: #385185; font-size: 14px; font-weight: 600; cursor: pointer;">
+            Log in with Facebook
+        </div>
+
+        <div id="error-message" class="error-msg">Invalid credentials. Please try again.</div>
     </div>
 
-    <div id="crosshair"></div>
-    <div id="stats-ui">
-        NET: <span id="player-count">1</span> Online | POS: <span id="coords">0, 0, 0</span>
+    <!-- Switcher Box -->
+    <div class="switch-box">
+        <span id="switch-text">Don't have an account?</span>
+        <span class="switch-link" id="switch-btn" onclick="toggleMode()">Sign up</span>
     </div>
+</div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+<script>
+    let isLogin = true;
 
-        // --- FIREBASE SETUP ---
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'blocky-3d-world';
-
-        // --- GAME VARIABLES ---
-        let camera, scene, renderer, clock;
-        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-        const velocity = new THREE.Vector3();
-        const direction = new THREE.Vector3();
-        const FRICTION = 8.0;
-        const ACCELERATION = 80.0;
-        const MAX_SPEED = 12.0;
+    function toggleMode() {
+        const title = document.querySelector('title');
+        const submitBtn = document.getElementById('submit-btn');
+        const switchText = document.getElementById('switch-text');
+        const switchBtn = document.getElementById('switch-btn');
+        const usernameInput = document.getElementById('username');
         
-        const pitchObject = new THREE.Object3D();
-        const yawObject = new THREE.Object3D();
+        isLogin = !isLogin;
+
+        if (isLogin) {
+            title.innerText = "Login | SocialChat Online";
+            submitBtn.innerText = "Log In";
+            switchText.innerText = "Don't have an account?";
+            switchBtn.innerText = "Sign up";
+            usernameInput.placeholder = "Phone number, username, or email";
+        } else {
+            title.innerText = "Sign Up | SocialChat Online";
+            submitBtn.innerText = "Sign Up";
+            switchText.innerText = "Have an account?";
+            switchBtn.innerText = "Log in";
+            usernameInput.placeholder = "Username";
+        }
+        document.getElementById('error-message').style.display = 'none';
+    }
+
+    function handleAuth(event, type) {
+        event.preventDefault();
+        const user = document.getElementById('username').value;
+        const pass = document.getElementById('password').value;
+
+        if (user.length < 3 || pass.length < 4) {
+            const error = document.getElementById('error-message');
+            error.innerText = "Credentials too short.";
+            error.style.display = 'block';
+            return;
+        }
+
+        // Persist user locally for the session
+        localStorage.setItem('socialchat_user', user);
+        localStorage.setItem('socialchat_avatar', `https://api.dicebear.com/7.x/avataaars/svg?seed=${user}`);
         
-        const overlay = document.getElementById('game-overlay');
-        const startBtn = document.getElementById('start-btn');
-        const usernameInput = document.getElementById('username-input');
-        const crosshair = document.getElementById('crosshair');
-        const statsUi = document.getElementById('stats-ui');
-        const coordsDisplay = document.getElementById('coords');
-        const playerCountDisplay = document.getElementById('player-count');
+        // Redirect to the main site
+        window.location.href = '/site';
+    }
 
-        let myId = null;
-        let myUsername = localStorage.getItem('blocky_username') || "Player" + Math.floor(Math.random() * 1000);
-        usernameInput.value = myUsername;
-
-        const otherPlayers = {}; // { uid: { mesh: Mesh, label: HTMLElement } }
-
-        // --- INITIALIZATION ---
-        init();
-        setupMultiplayer();
-        animate();
-
-        function init() {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xa2d2ff); 
-            scene.fog = new THREE.Fog(0xa2d2ff, 10, 150);
-
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            pitchObject.add(camera);
-            yawObject.add(pitchObject);
-            yawObject.position.y = 1.8; 
-            scene.add(yawObject);
-
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-            scene.add(ambientLight);
-
-            const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            sunLight.position.set(50, 100, 50);
-            scene.add(sunLight);
-
-            // Ground
-            const gridSize = 500;
-            const groundGeom = new THREE.PlaneGeometry(gridSize, gridSize);
-            const groundMat = new THREE.MeshPhongMaterial({ color: 0x72cc50 }); 
-            const ground = new THREE.Mesh(groundGeom, groundMat);
-            ground.rotation.x = -Math.PI / 2;
-            scene.add(ground);
-
-            const grid = new THREE.GridHelper(gridSize, 100, 0x4da630, 0x5dbb3d);
-            grid.position.y = 0.02;
-            scene.add(grid);
-
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
-
-            clock = new THREE.Clock();
-
-            document.addEventListener('keydown', (e) => handleKey(e.code, true));
-            document.addEventListener('keyup', (e) => handleKey(e.code, false));
-            document.addEventListener('mousemove', onMouseMove);
-            
-            startBtn.addEventListener('click', () => {
-                myUsername = usernameInput.value.trim() || "Guest";
-                localStorage.setItem('blocky_username', myUsername);
-                document.body.requestPointerLock();
-            });
-
-            document.addEventListener('pointerlockchange', () => {
-                const locked = document.pointerLockElement === document.body;
-                overlay.classList.toggle('hidden', locked);
-                crosshair.style.display = locked ? 'block' : 'none';
-                statsUi.style.display = locked ? 'block' : 'none';
-            });
-
-            window.addEventListener('resize', onWindowResize);
+    // Auto-fill check (optional)
+    window.onload = () => {
+        if(localStorage.getItem('socialchat_user')) {
+            // If already logged in, we could redirect, but usually, we let them see the login
         }
+    }
+</script>
 
-        // --- MULTIPLAYER LOGIC ---
-        async function setupMultiplayer() {
-            try {
-                await signInAnonymously(auth);
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        myId = user.uid;
-                        syncSelf();
-                        listenToOthers();
-                    }
-                });
-            } catch (err) { console.error("Auth Error:", err); }
-        }
 
-        function syncSelf() {
-            if (!myId) return;
-            // Update position in Firebase every 50ms (balanced for speed vs cost)
-            setInterval(async () => {
-                if (document.pointerLockElement !== document.body) return;
-                const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'players', myId);
-                await setDoc(userRef, {
-                    uid: myId,
-                    name: myUsername,
-                    pos: { x: yawObject.position.x, y: yawObject.position.y, z: yawObject.position.z },
-                    rot: { y: yawObject.rotation.y },
-                    lastSeen: serverTimestamp()
-                }, { merge: true });
-            }, 50);
-
-            // Cleanup on tab close
-            window.addEventListener('beforeunload', () => {
-                deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', myId));
-            });
-        }
-
-        function listenToOthers() {
-            const playersCol = collection(db, 'artifacts', appId, 'public', 'data', 'players');
-            onSnapshot(playersCol, (snapshot) => {
-                const activeIds = new Set();
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    activeIds.add(data.uid);
-                    if (data.uid === myId) return;
-                    updatePlayerMesh(data);
-                });
-
-                // Remove disconnected players
-                Object.keys(otherPlayers).forEach(uid => {
-                    if (!activeIds.has(uid)) {
-                        scene.remove(otherPlayers[uid].mesh);
-                        if (otherPlayers[uid].label.parentNode) {
-                            otherPlayers[uid].label.parentNode.removeChild(otherPlayers[uid].label);
-                        }
-                        delete otherPlayers[uid];
-                    }
-                });
-
-                playerCountDisplay.innerText = snapshot.size;
-            });
-        }
-
-        function updatePlayerMesh(data) {
-            if (!otherPlayers[data.uid]) {
-                // Create New Player Model (The Cube)
-                const geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-                const material = new THREE.MeshPhongMaterial({ color: 0xffcc00 });
-                const mesh = new THREE.Mesh(geometry, material);
-                
-                // Add eyes to the cube so we know where it's facing
-                const eyeGeom = new THREE.BoxGeometry(0.3, 0.3, 0.1);
-                const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-                const eyeL = new THREE.Mesh(eyeGeom, eyeMat);
-                eyeL.position.set(-0.3, 0.3, 0.76);
-                const eyeR = new THREE.Mesh(eyeGeom, eyeMat);
-                eyeR.position.set(0.3, 0.3, 0.76);
-                mesh.add(eyeL, eyeR);
-
-                scene.add(mesh);
-
-                // Create Floating Label
-                const label = document.createElement('div');
-                label.className = 'player-label';
-                label.innerText = data.name;
-                document.body.appendChild(label);
-
-                otherPlayers[data.uid] = { mesh, label };
-            }
-
-            // Smoothly lerp or just set position/rotation
-            const p = otherPlayers[data.uid];
-            p.mesh.position.set(data.pos.x, data.pos.y - 0.75, data.pos.z);
-            p.mesh.rotation.y = data.rot.y;
-            p.label.innerText = data.name;
-        }
-
-        // --- RENDERING & INPUTS ---
-        function handleKey(code, isDown) {
-            switch (code) {
-                case 'KeyW': moveForward = isDown; break;
-                case 'KeyA': moveLeft = isDown; break;
-                case 'KeyS': moveBackward = isDown; break;
-                case 'KeyD': moveRight = isDown; break;
-            }
-        }
-
-        function onMouseMove(event) {
-            if (document.pointerLockElement !== document.body) return;
-            const sensitivity = 0.002;
-            yawObject.rotation.y -= event.movementX * sensitivity;
-            pitchObject.rotation.x -= event.movementY * sensitivity;
-            pitchObject.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitchObject.rotation.x));
-        }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        function updateLabels() {
-            const widthHalf = window.innerWidth / 2;
-            const heightHalf = window.innerHeight / 2;
-            const tempVec = new THREE.Vector3();
-
-            Object.values(otherPlayers).forEach(p => {
-                tempVec.set(p.mesh.position.x, p.mesh.position.y + 1.8, p.mesh.position.z);
-                tempVec.project(camera);
-
-                if (tempVec.z < 1) { // If in front of camera
-                    p.label.style.display = 'block';
-                    const x = (tempVec.x * widthHalf) + widthHalf;
-                    const y = -(tempVec.y * heightHalf) + heightHalf;
-                    p.label.style.left = `${x}px`;
-                    p.label.style.top = `${y}px`;
-                } else {
-                    p.label.style.display = 'none';
-                }
-            });
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            if (document.pointerLockElement === document.body) {
-                const delta = Math.min(clock.getDelta(), 0.1);
-
-                velocity.x -= velocity.x * FRICTION * delta;
-                velocity.z -= velocity.z * FRICTION * delta;
-
-                direction.z = Number(moveForward) - Number(moveBackward);
-                direction.x = Number(moveRight) - Number(moveLeft);
-                direction.normalize(); 
-
-                if (moveForward || moveBackward) velocity.z -= direction.z * ACCELERATION * delta;
-                if (moveLeft || moveRight) velocity.x -= direction.x * ACCELERATION * delta;
-
-                const speed = velocity.length();
-                if (speed > MAX_SPEED) velocity.multiplyScalar(MAX_SPEED / speed);
-
-                yawObject.translateX(-velocity.x * delta);
-                yawObject.translateZ(velocity.z * delta);
-                
-                coordsDisplay.innerText = `${yawObject.position.x.toFixed(0)}, ${yawObject.position.z.toFixed(0)}`;
-            }
-
-            updateLabels();
-            renderer.render(scene, camera);
-        }
-    </script>
 </body>
 </html>
