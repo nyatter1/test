@@ -45,12 +45,25 @@
         .auth-screen {
             background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
         }
+        /* Loading overlay */
+        #loading-overlay {
+            background: #030712;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
     </style>
 </head>
 <body class="custom-scrollbar">
 
+    <!-- Loading Screen -->
+    <div id="loading-overlay" class="fixed inset-0">
+        <div class="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+    </div>
+
     <!-- Auth Screens -->
-    <div id="auth-container" class="fixed inset-0 z-[100] bg-[#030712] auth-screen flex items-center justify-center px-4">
+    <div id="auth-container" class="fixed inset-0 z-[100] bg-[#030712] auth-screen hidden items-center justify-center px-4">
         <div class="max-w-md w-full glass-nav p-8 rounded-3xl border border-white/10 shadow-2xl">
             <div class="text-center mb-8">
                 <div class="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-600/20 italic mx-auto mb-4 text-xl">N</div>
@@ -76,9 +89,8 @@
         </div>
     </div>
 
-    <!-- App UI (Hidden initially) -->
+    <!-- App UI -->
     <div id="app-content" class="hidden">
-        <!-- Header / Nav -->
         <nav class="fixed top-0 w-full z-50 glass-nav">
             <div class="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
                 <div class="flex items-center gap-2">
@@ -90,28 +102,21 @@
                         <p class="text-sm font-bold text-white leading-none" id="nav-user-display"></p>
                         <p class="text-xs text-indigo-400 font-medium" id="nav-handle-display"></p>
                     </div>
-                    <button onclick="logout()" class="w-10 h-10 rounded-full border border-white/10 avatar-placeholder hover:opacity-80 transition-opacity"></button>
+                    <button onclick="logout()" class="w-10 h-10 rounded-full border border-white/10 avatar-placeholder hover:opacity-80 transition-opacity" id="nav-avatar"></button>
                 </div>
             </div>
         </nav>
 
-        <!-- Main Content -->
         <main class="pt-24 pb-12 px-4">
             <div class="max-w-2xl mx-auto space-y-6">
-                <!-- Composer Card -->
                 <div class="post-card rounded-2xl p-5 shadow-2xl">
                     <div class="flex gap-4">
-                        <div class="w-12 h-12 rounded-full border border-white/5 shrink-0 avatar-placeholder"></div>
+                        <div class="w-12 h-12 rounded-full border border-white/5 shrink-0 avatar-placeholder user-pfp-current"></div>
                         <div class="flex-1 space-y-3">
                             <textarea id="postInput" placeholder="What's on your mind?" class="w-full bg-transparent border-none focus:ring-0 text-lg resize-none placeholder:text-gray-600 min-h-[100px]" maxlength="280"></textarea>
                             <div class="flex items-center justify-between pt-3 border-t border-white/5">
-                                <div class="flex gap-2 text-gray-500">
-                                    <button class="p-2 hover:bg-white/5 rounded-lg transition-colors cursor-not-allowed">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                    </button>
-                                    <button class="p-2 hover:bg-white/5 rounded-lg transition-colors cursor-not-allowed">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                    </button>
+                                <div class="flex gap-2 text-gray-500 text-xs font-medium italic">
+                                    Global Feed • Live
                                 </div>
                                 <button onclick="addPost()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-7 py-2.5 rounded-full font-bold transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed" id="postBtn">
                                     Post
@@ -120,67 +125,97 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Feed Container -->
                 <div id="feed" class="space-y-6"></div>
             </div>
         </main>
     </div>
 
-    <script>
-        // --- AUTH & USER SYSTEM ---
-        let users = JSON.parse(localStorage.getItem('next_users')) || [
-            { name: "John Doe", handle: "johndoe", pass: "password123" },
-            { name: "Jane Smith", handle: "janesmith", pass: "password123" }
-        ];
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, query, onSnapshot, addDoc, updateDoc, arrayUnion, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        let currentUser = null;
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'next-social-v1';
+
+        // --- AUTH & STATE ---
+        let currentUserData = null;
         let isSignUp = false;
 
         const authContainer = document.getElementById('auth-container');
         const appContent = document.getElementById('app-content');
+        const loadingOverlay = document.getElementById('loading-overlay');
         const authForm = document.getElementById('auth-form');
         const authError = document.getElementById('auth-error');
-        const authToggleBtn = document.getElementById('auth-toggle-btn');
-        const authTitle = document.getElementById('auth-title');
-        const authSubmit = document.getElementById('auth-submit');
-        const regFields = document.getElementById('reg-fields');
+        const postInput = document.getElementById('postInput');
+        const feed = document.getElementById('feed');
+        const postBtn = document.getElementById('postBtn');
 
-        authToggleBtn.onclick = () => {
+        // Check for saved session in localStorage
+        const savedUser = JSON.parse(localStorage.getItem('next_user_session'));
+
+        async function initApp() {
+            await signInAnonymously(auth);
+            if (savedUser) {
+                // Verify user exists in global users collection
+                const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', savedUser.handle);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    loginUser(userSnap.data());
+                } else {
+                    localStorage.removeItem('next_user_session');
+                    showAuth();
+                }
+            } else {
+                showAuth();
+            }
+        }
+
+        function showAuth() {
+            loadingOverlay.classList.add('hidden');
+            authContainer.classList.remove('hidden');
+            authContainer.classList.add('flex');
+        }
+
+        document.getElementById('auth-toggle-btn').onclick = () => {
             isSignUp = !isSignUp;
-            authTitle.innerText = isSignUp ? "Create Account" : "Welcome to Next";
-            authSubmit.innerText = isSignUp ? "Sign Up" : "Sign In";
-            regFields.classList.toggle('hidden', !isSignUp);
+            document.getElementById('auth-title').innerText = isSignUp ? "Create Account" : "Welcome to Next";
+            document.getElementById('auth-submit').innerText = isSignUp ? "Sign Up" : "Sign In";
+            document.getElementById('reg-fields').classList.toggle('hidden', !isSignUp);
             authError.classList.add('hidden');
         };
 
-        authForm.onsubmit = (e) => {
+        authForm.onsubmit = async (e) => {
             e.preventDefault();
             const name = document.getElementById('auth-name').value.trim();
-            const user = document.getElementById('auth-user').value.trim().toLowerCase();
+            const handle = document.getElementById('auth-user').value.trim().toLowerCase();
             const pass = document.getElementById('auth-pass').value;
 
-            if (!user || !pass || (isSignUp && !name)) {
-                showError("Please fill in all fields.");
+            if (!handle || !pass || (isSignUp && !name)) {
+                showError("Fields cannot be empty.");
                 return;
             }
 
+            const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', handle);
+            const userSnap = await getDoc(userRef);
+
             if (isSignUp) {
-                if (users.find(u => u.handle === user)) {
+                if (userSnap.exists()) {
                     showError("Username already taken.");
                     return;
                 }
-                const newUser = { name, handle: user, pass };
-                users.push(newUser);
-                localStorage.setItem('next_users', JSON.stringify(users));
+                const newUser = { name, handle, pass, createdAt: Timestamp.now() };
+                await setDoc(userRef, newUser);
                 loginUser(newUser);
             } else {
-                const existingUser = users.find(u => u.handle === user && u.pass === pass);
-                if (!existingUser) {
-                    showError("Invalid username or password.");
+                if (!userSnap.exists() || userSnap.data().pass !== pass) {
+                    showError("Invalid credentials.");
                     return;
                 }
-                loginUser(existingUser);
+                loginUser(userSnap.data());
             }
         };
 
@@ -189,68 +224,74 @@
             authError.classList.remove('hidden');
         }
 
-        function loginUser(user) {
-            currentUser = user;
+        function loginUser(userData) {
+            currentUserData = userData;
+            localStorage.setItem('next_user_session', JSON.stringify(userData));
+            
+            loadingOverlay.classList.add('hidden');
             authContainer.classList.add('hidden');
+            authContainer.classList.remove('flex');
             appContent.classList.remove('hidden');
-            document.getElementById('nav-user-display').innerText = user.name;
-            document.getElementById('nav-handle-display').innerText = '@' + user.handle;
-            document.getElementById('postInput').placeholder = `What's on your mind, ${user.name.split(' ')[0]}?`;
-            renderFeed();
+
+            document.getElementById('nav-user-display').innerText = userData.name;
+            document.getElementById('nav-handle-display').innerText = '@' + userData.handle;
+            
+            const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name)}&background=4f46e5&color=fff`;
+            document.getElementById('nav-avatar').style.backgroundImage = `url('${avatarUrl}')`;
+            document.querySelectorAll('.user-pfp-current').forEach(el => el.style.backgroundImage = `url('${avatarUrl}')`);
+            
+            postInput.placeholder = `What's on your mind, ${userData.name.split(' ')[0]}?`;
+            
+            startFeedListener();
         }
 
-        function logout() {
-            currentUser = null;
-            appContent.classList.add('hidden');
-            authContainer.classList.remove('hidden');
-            authForm.reset();
+        window.logout = () => {
+            localStorage.removeItem('next_user_session');
+            location.reload();
+        };
+
+        // --- GLOBAL REAL-TIME FEED ---
+        function startFeedListener() {
+            const postsQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'posts'));
+            
+            onSnapshot(postsQuery, (snapshot) => {
+                const posts = [];
+                snapshot.forEach(doc => posts.push({ id: doc.id, ...doc.data() }));
+                // Sort by timestamp in memory (Rule 2: avoid complex queries)
+                posts.sort((a, b) => b.timestamp?.toMillis() - a.timestamp?.toMillis());
+                renderFeed(posts);
+            }, (err) => console.error("Feed error:", err));
         }
 
-        // --- FEED SYSTEM ---
-        let posts = [
-            {
-                id: 1,
-                user: "Jane Smith",
-                handle: "janesmith",
-                content: "Building the future of social media with Next UI! The glassmorphism and dark mode are just 🤌✨",
-                time: "2h",
-                likes: 42,
-                liked: false,
-                comments: [{ user: "Dev Guy", content: "Looks clean! Love the typography." }]
-            }
-        ];
-
-        const postInput = document.getElementById('postInput');
-        const feed = document.getElementById('feed');
-        const postBtn = document.getElementById('postBtn');
-
-        function renderFeed() {
-            if (!currentUser) return;
-            feed.innerHTML = posts.map(post => `
+        function renderFeed(postsList) {
+            feed.innerHTML = postsList.map(post => {
+                const isLiked = post.likedBy?.includes(currentUserData.handle);
+                const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(post.user)}&background=312e81&color=fff`;
+                
+                return `
                 <div class="post-card rounded-2xl overflow-hidden shadow-xl" id="post-${post.id}">
                     <div class="p-6">
                         <div class="flex gap-4">
-                            <div class="w-12 h-12 rounded-full border border-white/10 avatar-placeholder shrink-0" 
-                                 style="background-image: url('https://ui-avatars.com/api/?name=${encodeURIComponent(post.user)}&background=312e81&color=fff')"></div>
+                            <div class="w-12 h-12 rounded-full border border-white/10 shrink-0" style="background-image: url('${avatarUrl}'); background-size: cover;"></div>
                             <div class="flex-1">
                                 <div class="flex items-center gap-2 mb-1">
                                     <span class="font-bold text-gray-100">${post.user}</span>
-                                    <span class="text-gray-500 text-sm">@${post.handle} • ${post.time}</span>
+                                    <span class="text-gray-500 text-sm">@${post.handle}</span>
                                 </div>
                                 <p class="text-gray-300 leading-relaxed text-[17px]">${post.content}</p>
                                 
                                 <div class="flex items-center gap-8 mt-6 text-gray-500">
-                                    <button onclick="toggleLike(${post.id})" class="flex items-center gap-2 group transition-colors ${post.liked ? 'text-pink-500' : 'hover:text-pink-500'}">
-                                        <svg class="w-5 h-5 ${post.liked ? 'fill-current' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <button onclick="window.toggleLike('${post.id}', ${JSON.stringify(post.likedBy || [])})" class="flex items-center gap-2 group transition-colors ${isLiked ? 'text-pink-500' : 'hover:text-pink-500'}">
+                                        <svg class="w-5 h-5 ${isLiked ? 'fill-current' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
                                         </svg>
-                                        <span class="text-sm font-medium">${post.likes}</span>
+                                        <span class="text-sm font-medium">${post.likedBy?.length || 0}</span>
                                     </button>
-                                    <button onclick="focusComment(${post.id})" class="flex items-center gap-2 hover:text-indigo-400 transition-colors">
+                                    <button onclick="document.getElementById('comment-input-${post.id}').focus()" class="flex items-center gap-2 hover:text-indigo-400 transition-colors">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                                         </svg>
-                                        <span class="text-sm font-medium">${post.comments.length}</span>
+                                        <span class="text-sm font-medium">${post.comments?.length || 0}</span>
                                     </button>
                                 </div>
                             </div>
@@ -258,16 +299,15 @@
                     </div>
 
                     <div class="comment-box p-4 px-6 space-y-3">
-                        ${post.comments.map(c => `
+                        ${(post.comments || []).map(c => `
                             <div class="flex gap-3 text-sm">
                                 <span class="font-bold text-gray-200 shrink-0">${c.user}</span>
                                 <span class="text-gray-400">${c.content}</span>
                             </div>
                         `).join('')}
                         <div class="flex gap-3 mt-4">
-                            <div class="w-8 h-8 rounded-full border border-white/5 shrink-0 avatar-placeholder" 
-                                 style="background-image: url('https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=312e81&color=fff')"></div>
-                            <input type="text" placeholder="Add a comment..." id="comment-input-${post.id}" onkeypress="handleComment(event, ${post.id})"
+                            <div class="w-8 h-8 rounded-full border border-white/5 shrink-0 avatar-placeholder user-pfp-current" style="background-image: url('https://ui-avatars.com/api/?name=${encodeURIComponent(currentUserData.name)}&background=4f46e5&color=fff')"></div>
+                            <input type="text" placeholder="Add a comment..." id="comment-input-${post.id}" onkeypress="window.handleComment(event, '${post.id}')"
                                 class="w-full bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-sm focus:outline-none focus:border-indigo-500/50 text-gray-200">
                         </div>
                     </div>
@@ -275,49 +315,55 @@
             `).join('');
         }
 
-        function addPost() {
+        window.addPost = async () => {
             const content = postInput.value.trim();
-            if (!content) return;
-            posts.unshift({
-                id: Date.now(),
-                user: currentUser.name,
-                handle: currentUser.handle,
-                content: content,
-                time: "Just now",
-                likes: 0,
-                liked: false,
-                comments: []
-            });
-            postInput.value = '';
+            if (!content || !currentUserData) return;
             postBtn.disabled = true;
-            renderFeed();
-        }
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'posts'), {
+                    user: currentUserData.name,
+                    handle: currentUserData.handle,
+                    content: content,
+                    timestamp: Timestamp.now(),
+                    likedBy: [],
+                    comments: []
+                });
+                postInput.value = '';
+            } catch (e) { console.error(e); }
+            postBtn.disabled = false;
+        };
 
-        function toggleLike(postId) {
-            const post = posts.find(p => p.id === postId);
-            if (post) {
-                post.liked = !post.liked;
-                post.likes += post.liked ? 1 : -1;
-                renderFeed();
-            }
-        }
+        window.toggleLike = async (postId, likedBy) => {
+            const handle = currentUserData.handle;
+            const newLikedBy = likedBy.includes(handle) 
+                ? likedBy.filter(h => h !== handle)
+                : [...likedBy, handle];
+            
+            const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'posts', postId);
+            await updateDoc(postRef, { likedBy: newLikedBy });
+        };
 
-        function handleComment(e, postId) {
+        window.handleComment = async (e, postId) => {
             if (e.key === 'Enter') {
-                const input = document.getElementById(`comment-input-${postId}`);
+                const input = e.target;
                 const content = input.value.trim();
                 if (!content) return;
-                const post = posts.find(p => p.id === postId);
-                if (post) {
-                    post.comments.push({ user: currentUser.name, content: content });
-                    renderFeed();
-                }
+                
+                const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'posts', postId);
+                const postSnap = await getDoc(postRef);
+                const comments = postSnap.data().comments || [];
+                
+                await updateDoc(postRef, {
+                    comments: [...comments, { user: currentUserData.name, content: content }]
+                });
+                input.value = '';
             }
-        }
+        };
 
-        function focusComment(postId) { document.getElementById(`comment-input-${postId}`).focus(); }
         postInput.addEventListener('input', () => { postBtn.disabled = !postInput.value.trim(); });
-        postBtn.disabled = true;
+        
+        // Start init
+        initApp();
     </script>
 </body>
 </html>
