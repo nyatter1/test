@@ -42,7 +42,7 @@
         }
         .modal-overlay.active { display: flex; }
 
-        .pfp-main { border: 1px solid rgba(255, 255, 255, 0.1); object-fit: cover; background: #1c1c1f; }
+        .pfp-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
         
         .like-btn { transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .like-btn.unliked { color: #ef4444; background: #18181b; }
@@ -54,9 +54,15 @@
         .staff-cat-btn { transition: all 0.2s ease; }
         .staff-cat-btn:hover { background: rgba(255, 255, 255, 0.05); }
         .staff-cat-btn.active { background: rgba(79, 70, 229, 0.1); border-color: rgba(79, 70, 229, 0.4); color: #818cf8; }
+
+        .chat-image { max-width: 100%; max-height: 300px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); margin-top: 8px; }
+        .audio-player { background: #18181b; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 10px; margin-top: 8px; display: flex; align-items: center; gap: 10px; width: 280px; }
     </style>
 </head>
 <body class="h-screen flex p-4 gap-4 relative overflow-hidden">
+
+    <!-- Hidden File Input -->
+    <input type="file" id="file-upload" class="hidden" accept="image/*,video/*,audio/*,.gif">
 
     <!-- Left Sidebar -->
     <aside class="w-72 glass rounded-3xl flex flex-col overflow-hidden shrink-0 hidden lg:flex">
@@ -78,7 +84,9 @@
         </div>
         <div class="p-4 border-t border-zinc-800 bg-zinc-900/30 flex items-center justify-between">
             <div class="flex items-center gap-2 cursor-pointer group" onclick="openProfile(profile.username)">
-                <div id="my-pfp-container" class="w-8 h-8 rounded-lg pfp-main flex items-center justify-center text-[10px] font-bold bg-zinc-800"></div>
+                <div id="my-pfp-container" class="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden bg-zinc-800">
+                    <img src="default.png" class="pfp-img" alt="pfp" onerror="this.src='https://ui-avatars.com/api/?name=User&background=27272a&color=fff'">
+                </div>
                 <span class="text-xs font-bold group-hover:text-indigo-400 transition-colors" id="my-username-display">User</span>
             </div>
             <button onclick="logout()" class="text-[10px] font-black text-zinc-600 hover:text-red-400 uppercase tracking-widest transition-colors">Exit</button>
@@ -96,7 +104,10 @@
         <div id="message-container" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
         <div class="p-6 pt-0">
             <form id="chat-form" class="flex gap-3 bg-zinc-900/50 p-2 rounded-2xl border border-zinc-800">
-                <input type="text" id="msg-input" autocomplete="off" class="flex-1 bg-transparent border-none outline-none px-4 py-3 text-sm text-white" placeholder="Say something...">
+                <button type="button" onclick="triggerFileUpload()" class="text-zinc-500 hover:text-white w-12 h-12 flex items-center justify-center transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                </button>
+                <input type="text" id="msg-input" autocomplete="off" class="flex-1 bg-transparent border-none outline-none px-2 py-3 text-sm text-white" placeholder="Say something...">
                 <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white w-12 h-12 rounded-xl flex items-center justify-center transition-all">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </button>
@@ -160,12 +171,10 @@
     <!-- Staff Directory Modal -->
     <div id="staff-modal" class="modal-overlay">
         <div class="w-full max-w-4xl bg-zinc-900 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl flex h-[80vh]">
-            <!-- Staff Navigation (Left side of modal) -->
             <div class="w-56 border-r border-zinc-800 bg-zinc-900/50 p-6 flex flex-col gap-2">
                 <h3 class="text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-4">RANKS</h3>
                 <div id="staff-rank-menu" class="space-y-1"></div>
             </div>
-            <!-- Staff User List (Right side of modal) -->
             <div class="flex-1 flex flex-col">
                 <div class="p-6 border-b border-zinc-800 flex justify-between items-center">
                     <h3 id="current-rank-label" class="text-xs font-black uppercase tracking-widest text-emerald-400 italic">Select a Rank</h3>
@@ -187,7 +196,9 @@
             <div class="px-6 pb-8 text-center -mt-12">
                 <div class="relative inline-block mb-4">
                     <div class="p-1 bg-zinc-900 rounded-3xl">
-                        <div id="p-pfp-large" class="w-24 h-24 rounded-[1.8rem] border-4 border-zinc-900 flex items-center justify-center text-3xl font-black bg-zinc-800 shadow-xl"></div>
+                        <div id="p-pfp-large" class="w-24 h-24 rounded-[1.8rem] border-4 border-zinc-900 overflow-hidden bg-zinc-800 shadow-xl">
+                            <img src="default.png" class="pfp-img" alt="pfp" onerror="this.src='https://ui-avatars.com/api/?name=User&background=27272a&color=fff'">
+                        </div>
                     </div>
                     <button id="p-like-btn" class="like-btn unliked absolute -right-2 bottom-0 border border-white/10 p-2.5 rounded-2xl shadow-xl">
                         <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
@@ -225,7 +236,6 @@
         let offlineUsers = [];
         let currentViewedUser = null;
 
-        // Staff Rank Definitions with refined keywords
         const STAFF_RANKS = [
             { id: 'dev', label: 'Developer', keywords: ['dev'], class: 'rank-dev' },
             { id: 'ceo', label: 'CEO', keywords: ['ceo'], class: 'rank-owner' },
@@ -238,28 +248,13 @@
             { id: 'helper', label: 'Site-Helper', keywords: ['helper', 'site-helper'], class: 'rank-helper' }
         ];
 
-        // --- PFP SYSTEM ---
-        const getPfpColor = (uname) => {
-            const colors = ['bg-indigo-600', 'bg-emerald-600', 'bg-rose-600', 'bg-amber-600', 'bg-fuchsia-600', 'bg-sky-600'];
-            let hash = 0;
-            for (let i = 0; i < uname.length; i++) hash = uname.charCodeAt(i) + ((hash << 5) - hash);
-            return colors[Math.abs(hash) % colors.length];
+        // Default PFP Helper
+        const getPfpHtml = (sizeClass = "w-8 h-8") => {
+            return `<div class="${sizeClass} rounded-xl overflow-hidden bg-zinc-800 flex items-center justify-center border border-white/10 shadow-inner">
+                <img src="default.png" class="pfp-img" onerror="this.src='https://ui-avatars.com/api/?name=User&background=27272a&color=fff'">
+            </div>`;
         };
 
-        const createPfp = (uname, sizeClass = "w-8 h-8") => {
-            const initials = uname.substring(0, 2).toUpperCase();
-            const color = getPfpColor(uname);
-            return `<div class="${sizeClass} rounded-xl ${color} flex items-center justify-center text-[10px] font-black border border-white/10 text-white shadow-inner">${initials}</div>`;
-        };
-
-        const setupMyPfp = () => {
-            document.getElementById('my-username-display').innerText = profile.username;
-            document.getElementById('my-pfp-container').innerHTML = createPfp(profile.username);
-        };
-
-        setupMyPfp();
-
-        // Helper to check for staff ranks based on username
         const getRankHtml = (uname) => {
             if (!uname) return '';
             const n = uname.toLowerCase();
@@ -281,17 +276,38 @@
                 div.innerHTML = `<div class="text-center py-2"><span class="text-[9px] text-zinc-600 uppercase font-black tracking-widest">${data.text}</span></div>`;
             } else {
                 div.className = `flex justify-start animate-in slide-in-from-left-2 duration-200`;
+                
+                let contentHtml = `<p class="text-sm leading-relaxed text-zinc-200">${data.text}</p>`;
+                
+                // Handle attachments
+                if(data.file) {
+                    if(data.fileType.startsWith('image')) {
+                        contentHtml = `<img src="${data.file}" class="chat-image" alt="upload">`;
+                    } else if(data.fileType.startsWith('audio')) {
+                        contentHtml = `
+                            <div class="audio-player">
+                                <button onclick="playAudio(this, '${data.file}')" class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shrink-0">
+                                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                </button>
+                                <div class="flex-1">
+                                    <p class="text-[9px] font-black uppercase text-zinc-500 tracking-tighter">Audio Message</p>
+                                    <div class="h-1 bg-zinc-800 rounded-full mt-1 overflow-hidden"><div class="h-full bg-indigo-500 w-0"></div></div>
+                                </div>
+                            </div>`;
+                    }
+                }
+
                 div.innerHTML = `
                     <div class="flex gap-3 max-w-[90%] group">
-                        <div onclick="openProfile('${data.username}')" class="shrink-0 pfp-main cursor-pointer hover:opacity-80 transition-opacity">
-                            ${createPfp(data.username, "w-9 h-9")}
+                        <div onclick="openProfile('${data.username}')" class="shrink-0 cursor-pointer hover:opacity-80 transition-opacity">
+                            ${getPfpHtml("w-9 h-9")}
                         </div>
                         <div class="bg-zinc-800/50 p-3.5 rounded-2xl border border-white/5">
                             <div class="flex items-center gap-2 mb-1">
                                 <span onclick="openProfile('${data.username}')" class="text-[10px] font-black text-zinc-400 uppercase italic cursor-pointer hover:text-white">${data.username} ${getRankHtml(data.username)}</span>
                                 <span class="text-[8px] opacity-30 font-bold">${now}</span>
                             </div>
-                            <p class="text-sm leading-relaxed text-zinc-200">${data.text}</p>
+                            ${contentHtml}
                         </div>
                     </div>
                 `;
@@ -299,6 +315,45 @@
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         });
+
+        // --- FILE UPLOAD HANDLING ---
+        function triggerFileUpload() {
+            document.getElementById('file-upload').click();
+        }
+
+        document.getElementById('file-upload').onchange = function(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                socket.emit('sendMessage', { 
+                    text: '', 
+                    file: event.target.result, 
+                    fileType: file.type 
+                });
+            };
+            reader.readAsDataURL(file);
+            e.target.value = ""; // Reset
+        };
+
+        function playAudio(btn, src) {
+            const audio = new Audio(src);
+            const icon = btn.querySelector('svg');
+            const progress = btn.nextElementSibling.querySelector('.bg-indigo-500');
+            
+            audio.play();
+            icon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+            
+            audio.ontimeupdate = () => {
+                progress.style.width = (audio.currentTime / audio.duration * 100) + '%';
+            };
+            
+            audio.onended = () => {
+                icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+                progress.style.width = '0%';
+            };
+        }
 
         socket.on('userListUpdate', (users) => {
             onlineUsers = users;
@@ -309,7 +364,6 @@
             filterSidebar();
         });
 
-        // --- HUB FUNCTIONS ---
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
         function openRules() {
@@ -375,7 +429,6 @@
             }
         }
 
-        // --- NEW STAFF MENU LOGIC ---
         function openStaffMenu() {
             const menu = document.getElementById('staff-rank-menu');
             const userDisplay = document.getElementById('staff-user-display');
@@ -397,7 +450,6 @@
             const registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
             const userDisplay = document.getElementById('staff-user-display');
             
-            // UI Toggle active state
             document.querySelectorAll('.staff-cat-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.innerText.includes(rank.label.toUpperCase()));
             });
@@ -411,7 +463,7 @@
             } else {
                 userDisplay.innerHTML = staffMembers.map(u => `
                     <div onclick="openProfile('${u.username}'); closeModal('staff-modal')" class="bg-zinc-800/50 border border-white/5 p-4 rounded-2xl flex items-center gap-4 cursor-pointer hover:bg-zinc-800 transition-all group">
-                        ${createPfp(u.username, "w-10 h-10")}
+                        ${getPfpHtml("w-10 h-10")}
                         <div class="min-w-0">
                             <p class="text-xs font-black text-white group-hover:text-indigo-400 truncate uppercase italic">${u.username}</p>
                             <div class="flex items-center gap-1.5 mt-1">
@@ -424,14 +476,11 @@
             }
         }
 
-        // Profile Logic
         function openProfile(username) {
             currentViewedUser = username;
             document.getElementById('p-username').innerText = username;
             document.getElementById('p-ranks').innerHTML = getRankHtml(username);
             document.getElementById('p-likes').innerText = profileLikes[username] || 0;
-            document.getElementById('p-pfp-large').innerHTML = username.substring(0, 2).toUpperCase();
-            document.getElementById('p-pfp-large').className = `w-24 h-24 rounded-[1.8rem] border-4 border-zinc-900 flex items-center justify-center text-3xl font-black shadow-xl text-white ${getPfpColor(username)}`;
             
             updateLikeButtonUI();
             
@@ -477,7 +526,7 @@
             document.getElementById(id).innerHTML = users.map(u => `
                 <div class="flex items-center justify-between p-2.5 rounded-2xl hover:bg-white/5 transition-all group cursor-pointer" onclick="openProfile('${u.username}')">
                     <div class="flex items-center gap-3 min-w-0">
-                        ${createPfp(u.username, "w-8 h-8")}
+                        ${getPfpHtml("w-8 h-8")}
                         <div class="truncate">
                             <div class="flex items-center truncate">
                                 <span class="text-xs font-bold text-zinc-200 truncate group-hover:text-indigo-400">${u.username}</span>
@@ -498,6 +547,9 @@
         };
 
         function logout() { localStorage.removeItem('chat_profile'); window.location.href = '/'; }
+        
+        // Final UI tweaks
+        document.getElementById('my-username-display').innerText = profile.username;
     </script>
 </body>
 </html>
