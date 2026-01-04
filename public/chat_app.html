@@ -49,12 +49,12 @@
         .like-btn.liked { color: #000000; background: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
 
         .info-card { transition: transform 0.2s ease; }
-        .info-card:hover { transform: translateY(-2px); }
+        .info-card:not(.disabled):hover { transform: translateY(-2px); }
     </style>
 </head>
 <body class="h-screen flex p-4 gap-4 relative overflow-hidden">
 
-    <!-- Left Sidebar (Users) -->
+    <!-- Left Sidebar -->
     <aside class="w-72 glass rounded-3xl flex flex-col overflow-hidden shrink-0 hidden lg:flex">
         <div class="p-6 border-b border-zinc-800">
             <h2 class="font-800 text-xl tracking-tighter text-indigo-400 uppercase italic mb-4">LOUNGE</h2>
@@ -100,18 +100,18 @@
         </div>
     </main>
 
-    <!-- Right Sidebar (Hub) -->
+    <!-- Right Sidebar -->
     <aside class="w-64 flex flex-col gap-4 shrink-0">
         <div class="glass rounded-3xl p-6 flex-1 flex flex-col gap-3">
             <h3 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-2 px-2">Information Hub</h3>
             
-            <button onclick="openNews()" class="info-card w-full bg-zinc-900/50 border border-white/5 p-4 rounded-2xl flex items-center gap-4 hover:bg-indigo-500/10 hover:border-indigo-500/30 group">
-                <div class="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
+            <button class="info-card disabled w-full bg-zinc-900/30 border border-white/5 p-4 rounded-2xl flex items-center gap-4 cursor-default opacity-50">
+                <div class="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
                 </div>
                 <div class="text-left">
-                    <p class="text-xs font-800 text-white uppercase italic">News</p>
-                    <p class="text-[9px] font-bold text-zinc-500">Latest updates</p>
+                    <p class="text-xs font-800 text-zinc-500 uppercase italic">News</p>
+                    <p class="text-[9px] font-bold text-zinc-600">Coming Soon</p>
                 </div>
             </button>
 
@@ -137,7 +137,6 @@
         </div>
     </aside>
 
-    <!-- Modals -->
     <!-- Rules Modal -->
     <div id="rules-modal" class="modal-overlay">
         <div class="w-full max-w-2xl bg-zinc-900 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
@@ -150,13 +149,11 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-            <div id="rules-content" class="p-8 max-h-[60vh] overflow-y-auto space-y-4 text-sm text-zinc-400 leading-relaxed">
-                <!-- Content injected by JS -->
-            </div>
+            <div id="rules-content" class="p-8 max-h-[60vh] overflow-y-auto space-y-4 text-sm text-zinc-400 leading-relaxed"></div>
         </div>
     </div>
 
-    <!-- Staff List Modal -->
+    <!-- Staff Directory Modal -->
     <div id="staff-modal" class="modal-overlay">
         <div class="w-full max-w-lg bg-zinc-900 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
             <div class="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
@@ -165,13 +162,11 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-            <div id="staff-roles-container" class="p-6 max-h-[70vh] overflow-y-auto space-y-3">
-                <!-- Roles injected by JS -->
-            </div>
+            <div id="staff-roles-container" class="p-6 max-h-[70vh] overflow-y-auto space-y-3"></div>
         </div>
     </div>
 
-    <!-- Profile View Overlay -->
+    <!-- Profile Overlay -->
     <div id="profile-overlay" class="modal-overlay">
         <div class="w-full max-w-sm bg-zinc-900 rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl">
             <div id="p-banner" class="h-32 bg-indigo-600 w-full"></div>
@@ -214,24 +209,26 @@
         let myLikes = JSON.parse(localStorage.getItem(`lounge_my_likes_${profile.username}`) || '[]');
         let onlineUsers = [];
         let offlineUsers = [];
+        let currentViewedUser = null;
 
-        // Staff Data Mapping (Static for UI, logic checks user registry)
+        // Staff Rank Definitions
         const STAFF_ROLES = ["Developer", "CEO", "Site-Helper", "Owner", "Co-Owner", "Super Admin", "Admin", "Mod", "Trial-mod"];
 
         document.getElementById('my-username-display').innerText = profile.username;
 
-        const getRankHtml = (name) => {
-            if (!name) return '';
-            const n = name.toLowerCase();
-            if (n === 'dev' || n === 'developer') return '<span class="rank-badge rank-dev">| DEV |</span>';
-            if (n === 'fluffy' || n === 'helper') return '<span class="rank-badge rank-helper">| HELPER |</span>';
-            if (n === 'owner') return '<span class="rank-badge rank-owner">| OWNER |</span>';
-            return '<span class="rank-badge rank-vip">| VIP |</span>';
+        // Helper to check for staff ranks based on username or keywords
+        const getRankHtml = (uname) => {
+            if (!uname) return '';
+            const n = uname.toLowerCase();
+            if (n.includes('dev')) return '<span class="rank-badge rank-dev">| DEV |</span>';
+            if (n.includes('owner')) return '<span class="rank-badge rank-owner">| OWNER |</span>';
+            if (n.includes('helper')) return '<span class="rank-badge rank-helper">| HELPER |</span>';
+            return '<span class="rank-badge rank-vip">| MEMBER |</span>';
         };
 
         socket.emit('join', profile);
 
-        // --- PUBLIC CHAT ---
+        // Socket Logic
         socket.on('message', (data) => {
             const container = document.getElementById('message-container');
             const div = document.createElement('div');
@@ -283,33 +280,11 @@
             if(type === 'member') {
                 mBtn.className = "text-[10px] font-black uppercase tracking-widest text-indigo-400 border-b-2 border-indigo-400 pb-1";
                 sBtn.className = "text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-white pb-1 transition-colors";
-                content.innerHTML = `
-                    <div class="space-y-4">
-                        <p class="font-bold text-white uppercase italic">1. Be Respectful</p>
-                        <p>No harassment, hate speech, or toxic behavior towards other members.</p>
-                        <p class="font-bold text-white uppercase italic">2. No Spam</p>
-                        <p>Avoid flooding the chat with excessive messages, emojis, or links.</p>
-                        <p class="font-bold text-white uppercase italic">3. English Only</p>
-                        <p>To ensure safety and moderation, please speak English in the public lounge.</p>
-                        <p class="font-bold text-white uppercase italic">4. Safety First</p>
-                        <p>Do not share personal info or malicious links. Report any suspicious activity.</p>
-                    </div>
-                `;
+                content.innerHTML = `<div class="space-y-4"><p class="font-bold text-white uppercase italic">1. Be Respectful</p><p>No harassment or toxic behavior.</p><p class="font-bold text-white uppercase italic">2. No Spam</p><p>Keep the chat clean.</p></div>`;
             } else {
                 sBtn.className = "text-[10px] font-black uppercase tracking-widest text-indigo-400 border-b-2 border-indigo-400 pb-1";
                 mBtn.className = "text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-white pb-1 transition-colors";
-                content.innerHTML = `
-                    <div class="space-y-4">
-                        <p class="font-bold text-white uppercase italic">1. Integrity</p>
-                        <p>Never abuse your permissions for personal gain or revenge.</p>
-                        <p class="font-bold text-white uppercase italic">2. Neutrality</p>
-                        <p>Handle disputes impartially. All members deserve a fair hearing.</p>
-                        <p class="font-bold text-white uppercase italic">3. Confidentiality</p>
-                        <p>Internal staff discussions must never be leaked to general members.</p>
-                        <p class="font-bold text-white uppercase italic">4. Activity</p>
-                        <p>Remain active and engaged with the community to keep your status.</p>
-                    </div>
-                `;
+                content.innerHTML = `<div class="space-y-4"><p class="font-bold text-white uppercase italic">1. Integrity</p><p>Permissions are for moderation only.</p><p class="font-bold text-white uppercase italic">2. Confidentiality</p><p>Staff info stays internal.</p></div>`;
             }
         }
 
@@ -317,38 +292,31 @@
             const container = document.getElementById('staff-roles-container');
             container.innerHTML = '';
             const registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
-            
-            // Mock assignment for demonstration:
-            // In a real app, you'd store ranks in the DB. Here we check username matches
-            const getRankAssignment = (role) => {
-                const assigned = registry.filter(u => {
-                    const r = role.toLowerCase().replace(' ', '');
-                    const uname = u.username.toLowerCase();
-                    // Basic logic for demo: usernames like "DevUser" or matches
-                    return uname.includes(r);
-                });
-                return assigned.length > 0 ? assigned : null;
-            };
 
             STAFF_ROLES.forEach(role => {
-                const users = getRankAssignment(role);
+                const assigned = registry.filter(u => {
+                    const r = role.toLowerCase().substring(0, 4); // Logic check: e.g. "Deve" matches Developer
+                    return u.username.toLowerCase().includes(r);
+                });
+
                 const roleDiv = document.createElement('div');
                 roleDiv.className = "bg-zinc-800/40 p-4 rounded-2xl border border-white/5";
                 
                 let usersHtml = '';
-                if(users) {
-                    usersHtml = users.map(u => `
+                if(assigned.length > 0) {
+                    usersHtml = assigned.map(u => `
                         <div onclick="openProfile('${u.username}'); closeModal('staff-modal')" class="flex items-center gap-2 mt-2 cursor-pointer group">
                             <img src="default.png" class="w-6 h-6 rounded-lg pfp-main">
                             <span class="text-xs font-bold text-zinc-200 group-hover:text-indigo-400 transition-colors">${u.username}</span>
+                            <div class="w-1.5 h-1.5 rounded-full ${onlineUsers.some(ou => ou.username === u.username) ? 'bg-green-500' : 'bg-zinc-600'}"></div>
                         </div>
                     `).join('');
                 } else {
-                    usersHtml = `<p class="text-[9px] font-bold text-zinc-600 mt-2 uppercase">Yet to come</p>`;
+                    usersHtml = `<p class="text-[9px] font-bold text-zinc-600 mt-2 uppercase italic tracking-wider">Yet To Come</p>`;
                 }
 
                 roleDiv.innerHTML = `
-                    <p class="text-[10px] font-black text-zinc-500 uppercase tracking-widest">${role}</p>
+                    <p class="text-[10px] font-black text-indigo-400/70 uppercase tracking-[0.2em] mb-1">${role}</p>
                     <div class="flex flex-col gap-1">${usersHtml}</div>
                 `;
                 container.appendChild(roleDiv);
@@ -357,17 +325,11 @@
             document.getElementById('staff-modal').classList.add('active');
         }
 
-        function openNews() {
-            // Simplified for brevity
-            alert("Latest News: V2.5 Released! \n- New Information Hub added.\n- Improved Profile Like system.\n- Performance optimizations.");
-        }
-
-        // --- CORE UI LOGIC ---
+        // Profile Logic
         function openProfile(username) {
             currentViewedUser = username;
             document.getElementById('p-username').innerText = username;
             document.getElementById('p-ranks').innerHTML = getRankHtml(username);
-            document.getElementById('p-pfp').src = 'default.png';
             document.getElementById('p-likes').innerText = profileLikes[username] || 0;
             updateLikeButtonUI();
             
@@ -389,8 +351,7 @@
 
         document.getElementById('p-like-btn').onclick = () => {
             if (!currentViewedUser) return;
-            const hasLiked = myLikes.includes(currentViewedUser);
-            if (hasLiked) {
+            if (myLikes.includes(currentViewedUser)) {
                 myLikes = myLikes.filter(u => u !== currentViewedUser);
                 profileLikes[currentViewedUser] = Math.max(0, (profileLikes[currentViewedUser] || 0) - 1);
             } else {
