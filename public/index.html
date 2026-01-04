@@ -1,226 +1,323 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login | SocialChat Online</title>
-<!-- We use a modern sans-serif font stack -->
-<style>
-:root {
---primary-blue: #0095f6;
---bg-gray: #fafafa;
---border-color: #dbdbdb;
---text-dark: #262626;
---text-gray: #8e8e8e;
-}
-
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        background-color: var(--bg-gray);
-        margin: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-        color: var(--text-dark);
-    }
-
-    .auth-container {
-        width: 100%;
-        max-width: 350px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .auth-box {
-        background: white;
-        border: 1px solid var(--border-color);
-        padding: 20px 40px;
-        text-align: center;
-        border-radius: 1px;
-    }
-
-    .logo {
-        font-size: 2.5rem;
-        font-weight: bold;
-        margin: 20px 0;
-        letter-spacing: -1px;
-        background: -webkit-linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    .auth-form {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-
-    input {
-        background: #fafafa;
-        border: 1px solid var(--border-color);
-        border-radius: 3px;
-        padding: 9px 7px;
-        font-size: 12px;
-        outline: none;
-    }
-
-    input:focus {
-        border-color: #a8a8a8;
-    }
-
-    button {
-        background-color: var(--primary-blue);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 7px;
-        font-weight: 600;
-        cursor: pointer;
-        margin-top: 8px;
-        font-size: 14px;
-    }
-
-    button:disabled {
-        opacity: 0.5;
-        cursor: default;
-    }
-
-    .divider {
-        display: flex;
-        align-items: center;
-        margin: 20px 0;
-        color: var(--text-gray);
-        font-size: 13px;
-        font-weight: 600;
-    }
-
-    .divider::before, .divider::after {
-        content: "";
-        flex: 1;
-        height: 1px;
-        background: var(--border-color);
-    }
-
-    .divider span {
-        padding: 0 18px;
-    }
-
-    .switch-box {
-        background: white;
-        border: 1px solid var(--border-color);
-        padding: 20px;
-        text-align: center;
-        font-size: 14px;
-    }
-
-    .switch-link {
-        color: var(--primary-blue);
-        font-weight: 600;
-        cursor: pointer;
-        text-decoration: none;
-    }
-
-    .error-msg {
-        color: #ed4956;
-        font-size: 12px;
-        margin-top: 15px;
-        display: none;
-    }
-</style>
-
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next Social | Feed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #030712;
+            color: #f9fafb;
+        }
+        .glass-nav {
+            background: rgba(3, 7, 18, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .post-card {
+            background: rgba(17, 24, 39, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .post-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+        .comment-box {
+            background: rgba(3, 7, 18, 0.4);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 10px;
+        }
+        .avatar-placeholder {
+            background-image: url('https://ui-avatars.com/api/?name=User&background=312e81&color=fff');
+            background-size: cover;
+        }
+        .auth-screen {
+            background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
+        }
+    </style>
 </head>
-<body>
+<body class="custom-scrollbar">
 
-<div class="auth-container">
-    <!-- Login/Signup Box -->
-    <div class="auth-box" id="auth-box">
-        <div class="logo">SocialChat</div>
-        
-        <form class="auth-form" id="login-form" onsubmit="handleAuth(event, 'login')">
-            <input type="text" id="username" placeholder="Phone number, username, or email" required>
-            <input type="password" id="password" placeholder="Password" required>
-            <button type="submit" id="submit-btn">Log In</button>
-        </form>
+    <!-- Auth Screens -->
+    <div id="auth-container" class="fixed inset-0 z-[100] bg-[#030712] auth-screen flex items-center justify-center px-4">
+        <div class="max-w-md w-full glass-nav p-8 rounded-3xl border border-white/10 shadow-2xl">
+            <div class="text-center mb-8">
+                <div class="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-600/20 italic mx-auto mb-4 text-xl">N</div>
+                <h1 id="auth-title" class="text-2xl font-extrabold tracking-tight">Welcome to Next</h1>
+                <p id="auth-subtitle" class="text-gray-400 text-sm mt-2">Sign in to join the conversation</p>
+            </div>
 
-        <div class="divider">
-            <span>OR</span>
+            <div id="auth-error" class="hidden mb-4 p-3 bg-red-500/10 border border-red-500/50 text-red-400 text-xs rounded-lg text-center font-medium"></div>
+
+            <form id="auth-form" class="space-y-4">
+                <div id="reg-fields" class="hidden space-y-4">
+                    <input type="text" id="auth-name" placeholder="Full Name" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+                </div>
+                <input type="text" id="auth-user" placeholder="Username" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+                <input type="password" id="auth-pass" placeholder="Password" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+                <button type="submit" id="auth-submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20">Sign In</button>
+            </form>
+
+            <p class="text-center mt-6 text-sm text-gray-500">
+                <span id="auth-toggle-text">Don't have an account?</span>
+                <button id="auth-toggle-btn" class="text-indigo-400 font-bold hover:underline">Sign Up</button>
+            </p>
         </div>
-
-        <div style="color: #385185; font-size: 14px; font-weight: 600; cursor: pointer;">
-            Log in with Facebook
-        </div>
-
-        <div id="error-message" class="error-msg">Invalid credentials. Please try again.</div>
     </div>
 
-    <!-- Switcher Box -->
-    <div class="switch-box">
-        <span id="switch-text">Don't have an account?</span>
-        <span class="switch-link" id="switch-btn" onclick="toggleMode()">Sign up</span>
+    <!-- App UI (Hidden initially) -->
+    <div id="app-content" class="hidden">
+        <!-- Header / Nav -->
+        <nav class="fixed top-0 w-full z-50 glass-nav">
+            <div class="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-600/20 italic">N</div>
+                    <span class="text-xl font-bold tracking-tight">Next</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-white leading-none" id="nav-user-display"></p>
+                        <p class="text-xs text-indigo-400 font-medium" id="nav-handle-display"></p>
+                    </div>
+                    <button onclick="logout()" class="w-10 h-10 rounded-full border border-white/10 avatar-placeholder hover:opacity-80 transition-opacity"></button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="pt-24 pb-12 px-4">
+            <div class="max-w-2xl mx-auto space-y-6">
+                <!-- Composer Card -->
+                <div class="post-card rounded-2xl p-5 shadow-2xl">
+                    <div class="flex gap-4">
+                        <div class="w-12 h-12 rounded-full border border-white/5 shrink-0 avatar-placeholder"></div>
+                        <div class="flex-1 space-y-3">
+                            <textarea id="postInput" placeholder="What's on your mind?" class="w-full bg-transparent border-none focus:ring-0 text-lg resize-none placeholder:text-gray-600 min-h-[100px]" maxlength="280"></textarea>
+                            <div class="flex items-center justify-between pt-3 border-t border-white/5">
+                                <div class="flex gap-2 text-gray-500">
+                                    <button class="p-2 hover:bg-white/5 rounded-lg transition-colors cursor-not-allowed">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    </button>
+                                    <button class="p-2 hover:bg-white/5 rounded-lg transition-colors cursor-not-allowed">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    </button>
+                                </div>
+                                <button onclick="addPost()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-7 py-2.5 rounded-full font-bold transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed" id="postBtn">
+                                    Post
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feed Container -->
+                <div id="feed" class="space-y-6"></div>
+            </div>
+        </main>
     </div>
-</div>
 
-<script>
-    let isLogin = true;
+    <script>
+        // --- AUTH & USER SYSTEM ---
+        let users = JSON.parse(localStorage.getItem('next_users')) || [
+            { name: "John Doe", handle: "johndoe", pass: "password123" },
+            { name: "Jane Smith", handle: "janesmith", pass: "password123" }
+        ];
 
-    function toggleMode() {
-        const title = document.querySelector('title');
-        const submitBtn = document.getElementById('submit-btn');
-        const switchText = document.getElementById('switch-text');
-        const switchBtn = document.getElementById('switch-btn');
-        const usernameInput = document.getElementById('username');
-        
-        isLogin = !isLogin;
+        let currentUser = null;
+        let isSignUp = false;
 
-        if (isLogin) {
-            title.innerText = "Login | SocialChat Online";
-            submitBtn.innerText = "Log In";
-            switchText.innerText = "Don't have an account?";
-            switchBtn.innerText = "Sign up";
-            usernameInput.placeholder = "Phone number, username, or email";
-        } else {
-            title.innerText = "Sign Up | SocialChat Online";
-            submitBtn.innerText = "Sign Up";
-            switchText.innerText = "Have an account?";
-            switchBtn.innerText = "Log in";
-            usernameInput.placeholder = "Username";
+        const authContainer = document.getElementById('auth-container');
+        const appContent = document.getElementById('app-content');
+        const authForm = document.getElementById('auth-form');
+        const authError = document.getElementById('auth-error');
+        const authToggleBtn = document.getElementById('auth-toggle-btn');
+        const authTitle = document.getElementById('auth-title');
+        const authSubmit = document.getElementById('auth-submit');
+        const regFields = document.getElementById('reg-fields');
+
+        authToggleBtn.onclick = () => {
+            isSignUp = !isSignUp;
+            authTitle.innerText = isSignUp ? "Create Account" : "Welcome to Next";
+            authSubmit.innerText = isSignUp ? "Sign Up" : "Sign In";
+            regFields.classList.toggle('hidden', !isSignUp);
+            authError.classList.add('hidden');
+        };
+
+        authForm.onsubmit = (e) => {
+            e.preventDefault();
+            const name = document.getElementById('auth-name').value.trim();
+            const user = document.getElementById('auth-user').value.trim().toLowerCase();
+            const pass = document.getElementById('auth-pass').value;
+
+            if (!user || !pass || (isSignUp && !name)) {
+                showError("Please fill in all fields.");
+                return;
+            }
+
+            if (isSignUp) {
+                if (users.find(u => u.handle === user)) {
+                    showError("Username already taken.");
+                    return;
+                }
+                const newUser = { name, handle: user, pass };
+                users.push(newUser);
+                localStorage.setItem('next_users', JSON.stringify(users));
+                loginUser(newUser);
+            } else {
+                const existingUser = users.find(u => u.handle === user && u.pass === pass);
+                if (!existingUser) {
+                    showError("Invalid username or password.");
+                    return;
+                }
+                loginUser(existingUser);
+            }
+        };
+
+        function showError(msg) {
+            authError.innerText = msg;
+            authError.classList.remove('hidden');
         }
-        document.getElementById('error-message').style.display = 'none';
-    }
 
-    function handleAuth(event, type) {
-        event.preventDefault();
-        const user = document.getElementById('username').value;
-        const pass = document.getElementById('password').value;
-
-        if (user.length < 3 || pass.length < 4) {
-            const error = document.getElementById('error-message');
-            error.innerText = "Credentials too short.";
-            error.style.display = 'block';
-            return;
+        function loginUser(user) {
+            currentUser = user;
+            authContainer.classList.add('hidden');
+            appContent.classList.remove('hidden');
+            document.getElementById('nav-user-display').innerText = user.name;
+            document.getElementById('nav-handle-display').innerText = '@' + user.handle;
+            document.getElementById('postInput').placeholder = `What's on your mind, ${user.name.split(' ')[0]}?`;
+            renderFeed();
         }
 
-        // Persist user locally for the session
-        localStorage.setItem('socialchat_user', user);
-        localStorage.setItem('socialchat_avatar', `https://api.dicebear.com/7.x/avataaars/svg?seed=${user}`);
-        
-        // Redirect to the main site
-        window.location.href = '/site';
-    }
-
-    // Auto-fill check (optional)
-    window.onload = () => {
-        if(localStorage.getItem('socialchat_user')) {
-            // If already logged in, we could redirect, but usually, we let them see the login
+        function logout() {
+            currentUser = null;
+            appContent.classList.add('hidden');
+            authContainer.classList.remove('hidden');
+            authForm.reset();
         }
-    }
-</script>
 
+        // --- FEED SYSTEM ---
+        let posts = [
+            {
+                id: 1,
+                user: "Jane Smith",
+                handle: "janesmith",
+                content: "Building the future of social media with Next UI! The glassmorphism and dark mode are just 🤌✨",
+                time: "2h",
+                likes: 42,
+                liked: false,
+                comments: [{ user: "Dev Guy", content: "Looks clean! Love the typography." }]
+            }
+        ];
 
+        const postInput = document.getElementById('postInput');
+        const feed = document.getElementById('feed');
+        const postBtn = document.getElementById('postBtn');
+
+        function renderFeed() {
+            if (!currentUser) return;
+            feed.innerHTML = posts.map(post => `
+                <div class="post-card rounded-2xl overflow-hidden shadow-xl" id="post-${post.id}">
+                    <div class="p-6">
+                        <div class="flex gap-4">
+                            <div class="w-12 h-12 rounded-full border border-white/10 avatar-placeholder shrink-0" 
+                                 style="background-image: url('https://ui-avatars.com/api/?name=${encodeURIComponent(post.user)}&background=312e81&color=fff')"></div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-bold text-gray-100">${post.user}</span>
+                                    <span class="text-gray-500 text-sm">@${post.handle} • ${post.time}</span>
+                                </div>
+                                <p class="text-gray-300 leading-relaxed text-[17px]">${post.content}</p>
+                                
+                                <div class="flex items-center gap-8 mt-6 text-gray-500">
+                                    <button onclick="toggleLike(${post.id})" class="flex items-center gap-2 group transition-colors ${post.liked ? 'text-pink-500' : 'hover:text-pink-500'}">
+                                        <svg class="w-5 h-5 ${post.liked ? 'fill-current' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                        </svg>
+                                        <span class="text-sm font-medium">${post.likes}</span>
+                                    </button>
+                                    <button onclick="focusComment(${post.id})" class="flex items-center gap-2 hover:text-indigo-400 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                        </svg>
+                                        <span class="text-sm font-medium">${post.comments.length}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="comment-box p-4 px-6 space-y-3">
+                        ${post.comments.map(c => `
+                            <div class="flex gap-3 text-sm">
+                                <span class="font-bold text-gray-200 shrink-0">${c.user}</span>
+                                <span class="text-gray-400">${c.content}</span>
+                            </div>
+                        `).join('')}
+                        <div class="flex gap-3 mt-4">
+                            <div class="w-8 h-8 rounded-full border border-white/5 shrink-0 avatar-placeholder" 
+                                 style="background-image: url('https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=312e81&color=fff')"></div>
+                            <input type="text" placeholder="Add a comment..." id="comment-input-${post.id}" onkeypress="handleComment(event, ${post.id})"
+                                class="w-full bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-sm focus:outline-none focus:border-indigo-500/50 text-gray-200">
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addPost() {
+            const content = postInput.value.trim();
+            if (!content) return;
+            posts.unshift({
+                id: Date.now(),
+                user: currentUser.name,
+                handle: currentUser.handle,
+                content: content,
+                time: "Just now",
+                likes: 0,
+                liked: false,
+                comments: []
+            });
+            postInput.value = '';
+            postBtn.disabled = true;
+            renderFeed();
+        }
+
+        function toggleLike(postId) {
+            const post = posts.find(p => p.id === postId);
+            if (post) {
+                post.liked = !post.liked;
+                post.likes += post.liked ? 1 : -1;
+                renderFeed();
+            }
+        }
+
+        function handleComment(e, postId) {
+            if (e.key === 'Enter') {
+                const input = document.getElementById(`comment-input-${postId}`);
+                const content = input.value.trim();
+                if (!content) return;
+                const post = posts.find(p => p.id === postId);
+                if (post) {
+                    post.comments.push({ user: currentUser.name, content: content });
+                    renderFeed();
+                }
+            }
+        }
+
+        function focusComment(postId) { document.getElementById(`comment-input-${postId}`).focus(); }
+        postInput.addEventListener('input', () => { postBtn.disabled = !postInput.value.trim(); });
+        postBtn.disabled = true;
+    </script>
 </body>
 </html>
