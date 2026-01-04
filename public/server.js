@@ -22,7 +22,7 @@ app.get('/chat', (req, res) => {
 
 // In-memory stores
 let onlineUsers = [];
-// Persistent registry to track users even when they go offline (for Staff list visibility)
+// Persistent registry to track users even when they go offline
 let userRegistry = []; 
 
 io.on('connection', (socket) => {
@@ -50,7 +50,7 @@ io.on('connection', (socket) => {
             userRegistry.push({
                 username: userData.username,
                 uid: userData.uid,
-                isStaff: /dev|owner|helper|admin|mod/i.test(userData.username) // Auto-detect staff based on name
+                isStaff: /dev|owner|helper|admin|mod|ceo|sadmin/i.test(userData.username)
             });
         }
 
@@ -62,18 +62,19 @@ io.on('connection', (socket) => {
         });
 
         // Broadcast the updated user list AND the full registry to all clients
-        // The client uses the registry to build the 'Offline' and 'Staff' sections
         io.emit('userListUpdate', onlineUsers);
         io.emit('registryUpdate', userRegistry);
     });
 
-    // Handle incoming chat messages (Public)
+    // Handle incoming chat messages (Public) - UPDATED TO SUPPORT MEDIA
     socket.on('sendMessage', (data) => {
         const user = onlineUsers.find(u => u.id === socket.id);
-        if (user && data.text) {
+        if (user) {
             io.emit('message', {
                 username: user.username,
-                text: data.text,
+                text: data.text || '',
+                file: data.file || null,         // Base64 data for images/audio
+                fileType: data.fileType || null, // MimeType (e.g., image/png)
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 system: false
             });
@@ -83,7 +84,7 @@ io.on('connection', (socket) => {
     // Handle Private Messages (DMs)
     socket.on('privateMessage', (data) => {
         const sender = onlineUsers.find(u => u.id === socket.id);
-        if (!sender || !data.target || !data.text) return;
+        if (!sender || !data.target || (!data.text && !data.file)) return;
 
         const recipient = onlineUsers.find(u => 
             u.username.toLowerCase() === data.target.toLowerCase()
@@ -92,7 +93,9 @@ io.on('connection', (socket) => {
         if (recipient) {
             const dmPayload = {
                 username: sender.username,
-                text: data.text,
+                text: data.text || '',
+                file: data.file || null,
+                fileType: data.fileType || null,
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 isPrivate: true
             };
@@ -122,7 +125,6 @@ io.on('connection', (socket) => {
 
             // Update online user list for everyone
             io.emit('userListUpdate', onlineUsers);
-            // We keep them in userRegistry so they still appear in "Staff" or "Offline"
         }
         console.log('User disconnected:', socket.id);
     });
