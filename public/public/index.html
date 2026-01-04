@@ -3,38 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Next Social | Real-time Feed</title>
+    <title>Next Social | Elite Real-time Feed</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
+        :root {
+            --accent: #6366f1;
+            --bg: #030712;
+        }
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #030712;
+            background-color: var(--bg);
             color: #f9fafb;
+            overflow-x: hidden;
         }
         .glass-nav {
-            background: rgba(3, 7, 18, 0.8);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(3, 7, 18, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
         .post-card {
             background: rgba(17, 24, 39, 0.4);
             border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: slideUp 0.4s ease-out forwards;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         .post-card:hover {
-            border-color: rgba(99, 102, 241, 0.3);
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-2px);
+            background: rgba(17, 24, 39, 0.6);
         }
         .comment-box {
-            background: rgba(3, 7, 18, 0.4);
+            background: rgba(3, 7, 18, 0.3);
             border-top: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb {
             background: #1f2937;
             border-radius: 10px;
@@ -42,104 +52,143 @@
         .avatar-placeholder {
             background-size: cover;
             background-position: center;
+            border: 2px solid rgba(255,255,255,0.05);
         }
         .auth-screen {
-            background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
+            background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 50%);
         }
-        #loading-overlay {
-            background: #030712;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 200;
+        .img-preview-glow {
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
         }
         .hidden { display: none !important; }
+        
+        /* Shimmer Effect for Loading */
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
     </style>
 </head>
-<body class="custom-scrollbar">
+<body class="custom-scrollbar min-h-screen">
 
     <!-- Loading Screen -->
-    <div id="loading-overlay" class="fixed inset-0">
-        <div class="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+    <div id="loading-overlay" class="fixed inset-0 bg-[#030712] flex items-center justify-center z-[200]">
+        <div class="relative">
+            <div class="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+            <div class="absolute inset-0 flex items-center justify-center font-black text-indigo-500 text-xs italic">N</div>
+        </div>
     </div>
 
-    <!-- Auth Screens -->
+    <!-- Auth System (Locked Entrance) -->
     <div id="auth-container" class="fixed inset-0 z-[100] bg-[#030712] auth-screen hidden items-center justify-center px-4">
-        <div class="max-w-md w-full glass-nav p-8 rounded-3xl border border-white/10 shadow-2xl">
-            <div class="text-center mb-8">
-                <div class="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-600/20 italic mx-auto mb-4 text-xl">N</div>
-                <h1 id="auth-title" class="text-2xl font-extrabold tracking-tight">Welcome to Next</h1>
-                <p id="auth-subtitle" class="text-gray-400 text-sm mt-2">Sign in to join the conversation</p>
+        <div class="max-w-md w-full glass-nav p-10 rounded-[2.5rem] border border-white/10 shadow-2xl">
+            <div class="text-center mb-10">
+                <div class="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center font-black text-white shadow-xl shadow-indigo-600/30 italic mx-auto mb-6 text-3xl transform -rotate-3 hover:rotate-0 transition-transform cursor-default">N</div>
+                <h1 id="auth-title" class="text-3xl font-800 tracking-tighter mb-2">ACCESS NEXT</h1>
+                <p id="auth-subtitle" class="text-gray-400 text-sm font-medium uppercase tracking-widest">Global Intelligence Feed</p>
             </div>
 
-            <div id="auth-error" class="hidden mb-4 p-3 bg-red-500/10 border border-red-500/50 text-red-400 text-xs rounded-lg text-center font-medium"></div>
+            <div id="auth-error" class="hidden mb-6 p-4 bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-xl text-center font-bold tracking-tight animate-pulse"></div>
 
             <form id="auth-form" class="space-y-4">
                 <div id="reg-fields" class="hidden space-y-4">
-                    <input type="text" id="auth-name" placeholder="Full Name" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-all text-white">
+                    <input type="text" id="auth-name" placeholder="DISPLAY NAME" class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-indigo-500 transition-all text-white placeholder:text-gray-600 font-bold uppercase tracking-wider">
                 </div>
-                <input type="text" id="auth-user" placeholder="Username" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-all text-white">
-                <input type="password" id="auth-pass" placeholder="Password" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-all text-white">
-                <button type="submit" id="auth-submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20">Sign In</button>
+                <input type="text" id="auth-user" placeholder="USERNAME" class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-indigo-500 transition-all text-white placeholder:text-gray-600 font-bold uppercase tracking-wider">
+                <input type="password" id="auth-pass" placeholder="PASSWORD" class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-indigo-500 transition-all text-white placeholder:text-gray-600 font-bold uppercase tracking-wider">
+                <button type="submit" id="auth-submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-2xl font-black transition-all shadow-xl shadow-indigo-600/20 uppercase tracking-widest text-xs">Authorize</button>
             </form>
 
-            <p class="text-center mt-6 text-sm text-gray-500">
-                <span id="auth-toggle-text">Don't have an account?</span>
-                <button id="auth-toggle-btn" class="text-indigo-400 font-bold hover:underline">Sign Up</button>
+            <div class="relative my-8">
+                <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-white/5"></div></div>
+                <div class="relative flex justify-center text-xs uppercase font-black text-gray-600 bg-[#0c0f1a] px-4 tracking-tighter">Identity Management</div>
+            </div>
+
+            <p class="text-center text-sm text-gray-500 font-medium">
+                <span id="auth-toggle-text">New to the network?</span>
+                <button id="auth-toggle-btn" class="text-indigo-400 font-black hover:text-indigo-300 transition-colors ml-1 uppercase text-xs tracking-widest">Register</button>
             </p>
         </div>
     </div>
 
-    <!-- App UI -->
-    <div id="app-content" class="hidden">
+    <!-- Main Content -->
+    <div id="app-content" class="hidden opacity-0 transition-opacity duration-700">
         <nav class="fixed top-0 w-full z-50 glass-nav">
-            <div class="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-600/20 italic">N</div>
-                    <span class="text-xl font-bold tracking-tight">Next</span>
+            <div class="max-w-4xl mx-auto px-6 h-20 flex items-center justify-between">
+                <div class="flex items-center gap-3 group cursor-pointer" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+                    <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center font-black text-white shadow-lg shadow-indigo-600/20 italic group-hover:scale-110 transition-transform">N</div>
+                    <span class="text-2xl font-black tracking-tighter italic">NEXT</span>
                 </div>
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-6">
                     <div class="text-right hidden sm:block">
-                        <p class="text-sm font-bold text-white leading-none" id="nav-user-display"></p>
-                        <p class="text-xs text-indigo-400 font-medium" id="nav-handle-display"></p>
+                        <p class="text-sm font-black text-white leading-none uppercase tracking-tighter" id="nav-user-display"></p>
+                        <p class="text-[10px] text-indigo-400 font-black uppercase tracking-widest mt-1" id="nav-handle-display"></p>
                     </div>
-                    <button onclick="logout()" class="w-10 h-10 rounded-full border border-white/10 avatar-placeholder hover:opacity-80 transition-opacity bg-indigo-900" id="nav-avatar"></button>
+                    <button onclick="logout()" class="w-12 h-12 rounded-2xl border border-white/10 avatar-placeholder hover:scale-105 transition-all bg-indigo-900 shadow-xl" id="nav-avatar"></button>
                 </div>
             </div>
         </nav>
 
-        <main class="pt-24 pb-12 px-4">
-            <div class="max-w-2xl mx-auto space-y-6">
-                <!-- Compose Area -->
-                <div class="post-card rounded-2xl p-5 shadow-2xl">
+        <main class="pt-28 pb-20 px-4">
+            <div class="max-w-2xl mx-auto space-y-8">
+                
+                <!-- Advanced Composer -->
+                <div class="post-card rounded-[2rem] p-6 shadow-2xl relative overflow-hidden">
+                    <div id="image-preview-container" class="hidden mb-4 relative">
+                        <img id="post-image-preview" src="" class="w-full h-64 object-cover rounded-2xl img-preview-glow border border-white/10">
+                        <button onclick="clearImage()" class="absolute top-4 right-4 bg-black/60 backdrop-blur-md p-2 rounded-xl text-white hover:bg-red-500 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+
                     <div class="flex gap-4">
-                        <div class="w-12 h-12 rounded-full border border-white/5 shrink-0 avatar-placeholder user-pfp-current bg-indigo-900"></div>
-                        <div class="flex-1 space-y-3">
-                            <textarea id="postInput" placeholder="What's on your mind?" class="w-full bg-transparent border-none focus:ring-0 text-lg resize-none placeholder:text-gray-600 min-h-[100px] text-white" maxlength="280"></textarea>
-                            <div class="flex items-center justify-between pt-3 border-t border-white/5">
-                                <div class="flex gap-2 text-gray-500 text-xs font-medium italic">
-                                    Multiplayer Feed • <span class="text-green-500" id="connection-status">Live</span>
+                        <div class="w-14 h-14 rounded-2xl border border-white/5 shrink-0 avatar-placeholder user-pfp-current shadow-lg"></div>
+                        <div class="flex-1">
+                            <textarea id="postInput" placeholder="Broadcast a thought..." class="w-full bg-transparent border-none focus:ring-0 text-xl font-medium resize-none placeholder:text-gray-600 min-h-[120px] text-white custom-scrollbar" maxlength="500"></textarea>
+                            
+                            <div class="flex items-center justify-between pt-4 border-t border-white/5">
+                                <div class="flex gap-4">
+                                    <label class="cursor-pointer group">
+                                        <input type="file" id="imageInput" accept="image/*" class="hidden" onchange="previewImage(event)">
+                                        <div class="flex items-center gap-2 text-gray-500 group-hover:text-indigo-400 transition-colors">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                            <span class="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Media</span>
+                                        </div>
+                                    </label>
+                                    <div class="flex items-center gap-2 text-gray-500">
+                                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                        <span class="text-[10px] font-black uppercase tracking-widest" id="connection-status">Online</span>
+                                    </div>
                                 </div>
-                                <button onclick="addPost()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-7 py-2.5 rounded-full font-bold transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed" id="postBtn" disabled>
-                                    Post
+                                
+                                <button onclick="addPost()" class="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-800 text-white px-8 py-3 rounded-2xl font-black transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed uppercase text-[10px] tracking-widest" id="postBtn" disabled>
+                                    Deploy
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
+
                 <!-- Feed Area -->
-                <div id="feed" class="space-y-6"></div>
+                <div id="feed" class="space-y-8">
+                    <!-- Shimmer Loaders -->
+                    <div class="post-card rounded-[2rem] p-8 h-48 shimmer"></div>
+                    <div class="post-card rounded-[2rem] p-8 h-48 shimmer"></div>
+                </div>
             </div>
         </main>
     </div>
 
     <script>
-        // --- MULTIPLAYER SETUP (SOCKET.IO) ---
-        // In a real environment, you'd point this to your server.js address
         const socket = io(); 
-
         let currentUser = null;
         let isSignUp = false;
+        let currentImageBase64 = null;
 
         const authContainer = document.getElementById('auth-container');
         const appContent = document.getElementById('app-content');
@@ -150,15 +199,19 @@
         const feed = document.getElementById('feed');
         const postBtn = document.getElementById('postBtn');
 
-        // --- AUTH LOGIC ---
+        // --- AUTH & INITIALIZATION ---
         function initApp() {
             const saved = localStorage.getItem('next_session');
-            if (saved) {
-                currentUser = JSON.parse(saved);
-                loginUser(currentUser);
-            } else {
-                showAuth();
-            }
+            setTimeout(() => {
+                if (saved) {
+                    try {
+                        currentUser = JSON.parse(saved);
+                        loginUser(currentUser);
+                    } catch(e) { showAuth(); }
+                } else {
+                    showAuth();
+                }
+            }, 800);
         }
 
         function showAuth() {
@@ -169,8 +222,8 @@
 
         document.getElementById('auth-toggle-btn').onclick = () => {
             isSignUp = !isSignUp;
-            document.getElementById('auth-title').innerText = isSignUp ? "Create Account" : "Welcome to Next";
-            document.getElementById('auth-submit').innerText = isSignUp ? "Sign Up" : "Sign In";
+            document.getElementById('auth-title').innerText = isSignUp ? "REGISTER" : "ACCESS NEXT";
+            document.getElementById('auth-submit').innerText = isSignUp ? "Create Identity" : "Authorize";
             document.getElementById('reg-fields').classList.toggle('hidden', !isSignUp);
             authError.classList.add('hidden');
         };
@@ -178,16 +231,15 @@
         authForm.onsubmit = (e) => {
             e.preventDefault();
             const name = document.getElementById('auth-name').value.trim();
-            const handle = document.getElementById('auth-user').value.trim().toLowerCase();
+            const handle = document.getElementById('auth-user').value.trim().toLowerCase().replace('@','');
             const pass = document.getElementById('auth-pass').value;
 
             if (!handle || !pass || (isSignUp && !name)) {
-                showError("Fields cannot be empty.");
+                showError("IDENTITY PARAMETERS MISSING.");
                 return;
             }
 
-            // In a classic Node.js server, we would emit a 'login' or 'register' event
-            // For now, we simulate the server response and store the session locally
+            // Simple validation simulation
             const userData = { 
                 name: isSignUp ? name : (handle.charAt(0).toUpperCase() + handle.slice(1)), 
                 handle 
@@ -209,87 +261,122 @@
             authContainer.classList.add('hidden');
             authContainer.classList.remove('flex');
             appContent.classList.remove('hidden');
+            setTimeout(() => appContent.style.opacity = '1', 10);
 
             document.getElementById('nav-user-display').innerText = userData.name;
             document.getElementById('nav-handle-display').innerText = '@' + userData.handle;
             
-            const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name)}&background=4f46e5&color=fff`;
+            const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name)}&background=4f46e5&color=fff&bold=true&format=svg`;
             document.getElementById('nav-avatar').style.backgroundImage = `url('${avatarUrl}')`;
             document.querySelectorAll('.user-pfp-current').forEach(el => el.style.backgroundImage = `url('${avatarUrl}')`);
             
-            postInput.placeholder = `What's on your mind, ${userData.name.split(' ')[0]}?`;
-            
-            // Join the global room on the server
             socket.emit('join-room', 'global-feed');
         }
 
         window.logout = () => {
-            localStorage.removeItem('next_session');
-            location.reload();
+            appContent.style.opacity = '0';
+            setTimeout(() => {
+                localStorage.removeItem('next_session');
+                location.reload();
+            }, 500);
         };
 
-        // --- REAL-TIME EVENT HANDLERS ---
+        // --- IMAGE HANDLING ---
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentImageBase64 = e.target.result;
+                    document.getElementById('post-image-preview').src = currentImageBase64;
+                    document.getElementById('image-preview-container').classList.remove('hidden');
+                    updatePostBtn();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function clearImage() {
+            currentImageBase64 = null;
+            document.getElementById('imageInput').value = '';
+            document.getElementById('image-preview-container').classList.add('hidden');
+            updatePostBtn();
+        }
+
+        // --- FEED RENDERING ---
         socket.on('feed-update', (posts) => {
             renderFeed(posts);
         });
 
-        socket.on('connect', () => {
-            document.getElementById('connection-status').innerText = 'Live';
-            document.getElementById('connection-status').className = 'text-green-500';
-        });
-
-        socket.on('disconnect', () => {
-            document.getElementById('connection-status').innerText = 'Reconnecting...';
-            document.getElementById('connection-status').className = 'text-yellow-500';
-        });
-
         function renderFeed(postsList) {
+            if (postsList.length === 0) {
+                feed.innerHTML = `<div class="text-center py-20 text-gray-600 font-black uppercase tracking-widest text-xs">Awaiting Network Transmission...</div>`;
+                return;
+            }
+
             feed.innerHTML = postsList.map(post => {
                 const isLiked = post.likedBy.includes(currentUser.handle);
-                const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(post.user)}&background=312e81&color=fff`;
+                const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(post.user)}&background=1e1b4b&color=4f46e5&bold=true&format=svg`;
                 
                 return `
-                <div class="post-card rounded-2xl overflow-hidden shadow-xl" id="post-${post.id}">
-                    <div class="p-6">
+                <div class="post-card rounded-[2rem] overflow-hidden shadow-2xl" id="post-${post.id}">
+                    <div class="p-8">
                         <div class="flex gap-4">
-                            <div class="w-12 h-12 rounded-full border border-white/10 shrink-0 avatar-placeholder" style="background-image: url('${avatarUrl}')"></div>
-                            <div class="flex-1">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="font-bold text-gray-100">${post.user}</span>
-                                    <span class="text-gray-500 text-sm">@${post.handle}</span>
+                            <div class="w-14 h-14 rounded-2xl border border-white/10 shrink-0 avatar-placeholder" style="background-image: url('${avatarUrl}')"></div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex flex-col">
+                                        <span class="font-black text-gray-100 uppercase tracking-tighter text-sm italic">${post.user}</span>
+                                        <span class="text-indigo-400 text-[10px] font-black uppercase tracking-widest">@${post.handle}</span>
+                                    </div>
+                                    <span class="text-[9px] font-black text-gray-600 uppercase tracking-widest">${timeAgo(post.timestamp)}</span>
                                 </div>
-                                <p class="text-gray-300 leading-relaxed text-[17px]">${post.content}</p>
+                                <p class="text-gray-300 leading-relaxed text-lg font-medium mb-4">${post.content}</p>
                                 
-                                <div class="flex items-center gap-8 mt-6 text-gray-500">
-                                    <button onclick="toggleLike('${post.id}')" class="flex items-center gap-2 group transition-colors ${isLiked ? 'text-pink-500' : 'hover:text-pink-500'}">
-                                        <svg class="w-5 h-5 ${isLiked ? 'fill-current' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                                        </svg>
-                                        <span class="text-sm font-medium">${post.likedBy.length}</span>
+                                ${post.image ? `
+                                    <div class="rounded-2xl overflow-hidden border border-white/5 mb-6 shadow-2xl">
+                                        <img src="${post.image}" class="w-full h-auto max-h-[500px] object-cover hover:scale-[1.02] transition-transform duration-500">
+                                    </div>
+                                ` : ''}
+
+                                <div class="flex items-center gap-8 mt-4 text-gray-500">
+                                    <button onclick="toggleLike('${post.id}')" class="flex items-center gap-2 group transition-all ${isLiked ? 'text-rose-500 scale-110' : 'hover:text-rose-500'}">
+                                        <div class="p-2 rounded-xl group-hover:bg-rose-500/10 transition-colors">
+                                            <svg class="w-6 h-6 ${isLiked ? 'fill-current' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="text-xs font-black tracking-widest">${post.likedBy.length}</span>
                                     </button>
-                                    <button onclick="document.getElementById('comment-input-${post.id}').focus()" class="flex items-center gap-2 hover:text-indigo-400 transition-colors">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                                        </svg>
-                                        <span class="text-sm font-medium">${post.comments.length}</span>
+                                    <button onclick="document.getElementById('comment-input-${post.id}').focus()" class="flex items-center gap-2 group transition-colors hover:text-indigo-400">
+                                        <div class="p-2 rounded-xl group-hover:bg-indigo-500/10 transition-colors">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="text-xs font-black tracking-widest">${post.comments.length}</span>
                                     </button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="comment-box p-4 px-6 space-y-3">
-                        ${post.comments.map(c => `
-                            <div class="flex gap-3 text-sm">
-                                <span class="font-bold text-gray-200 shrink-0">${c.user}</span>
-                                <span class="text-gray-400">${c.content}</span>
+                    <div class="comment-box p-6 space-y-4">
+                        <div class="space-y-3">
+                            ${post.comments.map(c => `
+                                <div class="flex gap-3 text-sm animate-slideUp">
+                                    <span class="font-black text-indigo-400 uppercase text-[10px] tracking-tighter italic shrink-0">${c.user}</span>
+                                    <span class="text-gray-400 font-medium">${c.content}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="flex gap-4 items-center mt-6">
+                            <div class="w-8 h-8 rounded-lg border border-white/10 shrink-0 avatar-placeholder user-pfp-current"></div>
+                            <div class="flex-1 relative">
+                                <input type="text" placeholder="WRITE COMMENT..." id="comment-input-${post.id}" 
+                                    onkeypress="handleComment(event, '${post.id}')"
+                                    class="w-full bg-white/5 border border-white/5 rounded-2xl px-5 py-3 text-[10px] font-bold tracking-widest focus:outline-none focus:border-indigo-500/50 text-gray-200 uppercase placeholder:text-gray-700">
                             </div>
-                        `).join('')}
-                        <div class="flex gap-3 mt-4">
-                            <div class="w-8 h-8 rounded-full border border-white/5 shrink-0 avatar-placeholder" style="background-image: url('${avatarUrl}')"></div>
-                            <input type="text" placeholder="Add a comment..." id="comment-input-${post.id}" 
-                                onkeypress="handleComment(event, '${post.id}')"
-                                class="w-full bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-sm focus:outline-none focus:border-indigo-500/50 text-gray-200">
                         </div>
                     </div>
                 </div>
@@ -300,16 +387,17 @@
         // --- ACTIONS ---
         window.addPost = () => {
             const content = postInput.value.trim();
-            if (!content || !currentUser) return;
+            if ((!content && !currentImageBase64) || !currentUser) return;
             
             socket.emit('new-post', {
                 user: currentUser.name,
                 handle: currentUser.handle,
-                content: content
+                content: content,
+                image: currentImageBase64
             });
 
             postInput.value = '';
-            postBtn.disabled = true;
+            clearImage();
         };
 
         window.toggleLike = (postId) => {
@@ -331,11 +419,39 @@
             }
         };
 
-        postInput.addEventListener('input', () => { 
-            postBtn.disabled = !postInput.value.trim(); 
+        function updatePostBtn() {
+            postBtn.disabled = !postInput.value.trim() && !currentImageBase64;
+        }
+
+        function timeAgo(date) {
+            const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+            if (seconds < 60) return 'Just now';
+            if (seconds < 3600) return Math.floor(seconds/60) + 'm ago';
+            if (seconds < 86400) return Math.floor(seconds/3600) + 'h ago';
+            return Math.floor(seconds/86400) + 'd ago';
+        }
+
+        postInput.addEventListener('input', updatePostBtn);
+
+        // --- SOCKET STATUS ---
+        socket.on('connect', () => {
+            const status = document.getElementById('connection-status');
+            if(status) {
+                status.innerText = 'Online';
+                status.classList.remove('text-yellow-500');
+                status.classList.add('text-green-500');
+            }
         });
 
-        // Initialize the app
+        socket.on('disconnect', () => {
+            const status = document.getElementById('connection-status');
+            if(status) {
+                status.innerText = 'Syncing...';
+                status.classList.remove('text-green-500');
+                status.classList.add('text-yellow-500');
+            }
+        });
+
         initApp();
     </script>
 </body>
