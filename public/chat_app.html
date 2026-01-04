@@ -42,11 +42,12 @@
         .main-blur { filter: blur(15px); pointer-events: none; transition: filter 0.3s ease; }
 
         .notification-dot {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             background-color: #ef4444;
             border-radius: 50%;
-            box-shadow: 0 0 8px #ef4444;
+            box-shadow: 0 0 10px #ef4444;
+            flex-shrink: 0;
         }
         
         .msg-time { font-size: 9px; opacity: 0.4; font-weight: 600; }
@@ -63,12 +64,10 @@
             </div>
             
             <div class="flex-1 overflow-y-auto p-4 space-y-6">
-                <!-- Online Section -->
                 <div>
                     <h3 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-3 px-2">Online — <span id="online-total">0</span></h3>
                     <div id="online-list" class="space-y-2"></div>
                 </div>
-                <!-- Offline Section -->
                 <div>
                     <h3 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-3 px-2">Offline — <span id="offline-total">0</span></h3>
                     <div id="offline-list" class="space-y-2 opacity-50 grayscale"></div>
@@ -255,17 +254,12 @@
         // --- USER LIST UPDATE ---
         socket.on('userListUpdate', (users) => {
             onlineUsers = users;
-            // Filter out self and identify "offline" users as those who were in list before but gone
-            // Note: In a real server-side persistent app, the server sends the full registry.
-            // For this simulation, we'll maintain a local registry of seen users.
             let registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
             users.forEach(u => {
                 if (!registry.find(r => r.username === u.username)) registry.push(u);
             });
             localStorage.setItem('user_registry', JSON.stringify(registry));
-
             offlineUsers = registry.filter(r => !users.some(u => u.username === r.username));
-
             updateSidebarUI();
         });
 
@@ -283,12 +277,11 @@
                     </div>
                 </div>
             `;
-
             document.getElementById('online-list').innerHTML = onlineUsers.map(u => renderUser(u, true)).join('');
             document.getElementById('offline-list').innerHTML = offlineUsers.map(u => renderUser(u, false)).join('');
         }
 
-        // --- PRIVATE MESSAGING ---
+        // --- PRIVATE MESSAGING LOGIC ---
         socket.on('privateMessage', (data) => {
             const sender = data.username;
             const target = data.target;
@@ -297,47 +290,52 @@
             if (!conversations[otherUser]) conversations[otherUser] = [];
             conversations[otherUser].push({ ...data, time: formatTime() });
             
-            // Notification logic
+            // Notification logic for receiver
             if (sender !== profile.username && dmTarget !== otherUser) {
                 unreadFrom.add(otherUser);
                 document.getElementById('global-notif-dot').classList.remove('hidden');
             }
 
             localStorage.setItem(`dms_${profile.username}`, JSON.stringify(conversations));
-            updateInboxUI();
             
+            // UI Update: Only append if currently viewing THIS conversation
             if (dmTarget === otherUser && document.getElementById('private-chat-overlay').classList.contains('active')) {
                 appendPrivateMessage(conversations[otherUser][conversations[otherUser].length - 1]);
             }
+            
+            updateInboxUI();
         });
 
         function updateInboxUI() {
             const list = document.getElementById('inbox-list');
-            const users = Object.keys(conversations).sort((a, b) => {
-                // Unread users at top
+            const userKeys = Object.keys(conversations).sort((a, b) => {
+                // Priority 1: Unread
                 if (unreadFrom.has(a) && !unreadFrom.has(b)) return -1;
                 if (!unreadFrom.has(a) && unreadFrom.has(b)) return 1;
-                return 0;
+                return 0; // Maintain recent (chronological storage)
             });
 
-            if (users.length === 0) {
+            if (userKeys.length === 0) {
                 list.innerHTML = `<div class="text-center py-20 opacity-20"><p class="text-[10px] font-black uppercase tracking-[0.2em]">Inbox Empty</p></div>`;
                 return;
             }
 
-            list.innerHTML = users.map(user => {
-                const lastMsg = conversations[user][conversations[user].length - 1];
+            list.innerHTML = userKeys.map(user => {
+                const history = conversations[user];
+                const lastMsg = history[history.length - 1];
                 return `
                     <div onclick="openPrivateChat('${user}')" class="flex items-center gap-4 p-4 rounded-[2rem] bg-zinc-800/40 border border-white/5 hover:bg-indigo-600/10 transition-all cursor-pointer group relative">
-                        <img src="default.png" class="w-12 h-12 rounded-2xl object-cover">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex justify-between items-center">
-                                <span class="text-xs font-black text-white uppercase italic">${user}</span>
-                                <span class="text-[9px] opacity-30">${lastMsg?.time || ''}</span>
-                            </div>
-                            <p class="text-[11px] text-zinc-500 truncate">${lastMsg?.text || 'Sent an attachment'}</p>
+                        <div class="relative flex-shrink-0">
+                            <img src="default.png" class="w-12 h-12 rounded-2xl object-cover">
+                            ${unreadFrom.has(user) ? '<div class="notification-dot absolute -top-1 -right-1 border-2 border-zinc-900"></div>' : ''}
                         </div>
-                        ${unreadFrom.has(user) ? '<div class="notification-dot absolute right-4"></div>' : ''}
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-center mb-0.5">
+                                <span class="text-xs font-black text-white uppercase italic truncate pr-2">${user}</span>
+                                <span class="text-[9px] opacity-30 flex-shrink-0">${lastMsg?.time || ''}</span>
+                            </div>
+                            <p class="text-[11px] text-zinc-500 truncate font-medium">${lastMsg?.username === profile.username ? 'You: ' : ''}${lastMsg?.text || 'Sent an attachment'}</p>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -376,36 +374,31 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        // --- CORE FUNCTIONS ---
+        // --- CORE UI ACTIONS ---
         function showUserOptions(event, username) {
             event.stopPropagation();
             const menu = document.getElementById('user-context-menu');
             menu.style.top = `${event.clientY}px`;
             menu.style.left = `${event.clientX}px`;
             menu.classList.remove('hidden');
-            
             document.getElementById('view-profile-btn').onclick = () => { openProfile(username); menu.classList.add('hidden'); };
             document.getElementById('send-dm-btn').onclick = () => { openDMModal(username); menu.classList.add('hidden'); };
-
             const hide = () => { menu.classList.add('hidden'); document.removeEventListener('click', hide); };
             setTimeout(() => document.addEventListener('click', hide), 10);
         }
 
         function openProfile(username) {
             const registry = JSON.parse(localStorage.getItem('user_registry') || '[]');
-            const user = registry.find(u => u.username === username) || { username, age: '??', gender: '??', joined: 'Jan 2026' };
+            const user = registry.find(u => u.username === username) || { username };
             const isOnline = onlineUsers.some(u => u.username === username);
-
             document.getElementById('p-username').innerText = user.username;
             document.getElementById('p-ranks').innerHTML = getRankHtml(user.username);
             document.getElementById('p-age').innerText = user.age || '??';
             document.getElementById('p-gender').innerText = user.gender || '??';
             document.getElementById('p-joined').innerText = user.joined || 'Jan 2026';
-            
             const lastSeen = document.getElementById('p-lastseen');
             lastSeen.innerText = isOnline ? 'Just now' : 'Recently';
             lastSeen.className = isOnline ? 'text-[9px] font-black text-green-400 uppercase' : 'text-[9px] font-black text-zinc-500 uppercase';
-
             document.getElementById('profile-overlay').classList.add('active');
         }
 
@@ -426,10 +419,18 @@
         function sendPrivateMessage() {
             const text = document.getElementById('dm-text').value.trim();
             if (!text || !dmTarget) return;
+            // Emit to server
             socket.emit('privateMessage', { target: dmTarget, text, username: profile.username });
+            
             document.getElementById('dm-modal').classList.remove('active');
             document.getElementById('dm-text').value = '';
             openPrivateChat(dmTarget);
+        }
+
+        function initiateDMFromProfile() {
+            const username = document.getElementById('p-username').innerText;
+            closeProfile();
+            openDMModal(username);
         }
 
         document.getElementById('chat-form').onsubmit = (e) => {
