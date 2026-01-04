@@ -3,761 +3,418 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lounge | Premium Edition</title>
+    <title>Lounge | Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg: #09090b;
-            --card: #18181b;
-            --accent: #6366f1;
-            --accent-hover: #4f46e5;
-            --text-main: #fafafa;
-            --text-muted: #a1a1aa;
-            --glass-border: rgba(255, 255, 255, 0.08);
-        }
-
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: var(--bg); 
-            color: var(--text-main); 
-            overflow: hidden; 
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0b0b;
+            color: #e4e4e7;
             height: 100vh;
+            overflow: hidden;
         }
 
-        .glass { 
-            background: rgba(24, 24, 27, 0.7); 
-            backdrop-filter: blur(20px); 
-            border: 1px solid var(--glass-border); 
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        }
-
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
 
-        .rank-badge {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            font-size: 9px;
-            font-weight: 800;
-            padding: 2px 8px;
-            border-radius: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
+        .sidebar-item {
+            transition: all 0.2s ease;
+            border-radius: 12px;
+        }
+        .sidebar-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(4px);
         }
 
-        .rank-dev { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
-        .rank-owner { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
-        .rank-helper { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
-        .rank-member { background: rgba(234, 179, 8, 0.1); color: #fbbf24; border: 1px solid rgba(234, 179, 8, 0.2); }
+        .chat-bubble {
+            max-width: 80%;
+            border-radius: 18px;
+            padding: 12px 16px;
+            font-size: 14px;
+            line-height: 1.5;
+            position: relative;
+        }
+
+        .rank-badge {
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .rank-dev { background: #4f46e5; color: white; }
+        .rank-owner { background: #ef4444; color: white; }
+        .rank-member { background: #3f3f46; color: #a1a1aa; }
 
         .modal-overlay {
             position: fixed;
             inset: 0;
-            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
             display: none;
             align-items: center;
             justify-content: center;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(8px);
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            z-index: 50;
         }
-        .modal-overlay.active { display: flex; opacity: 1; }
-        
-        .profile-card {
-            transform: scale(0.95);
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .modal-overlay.active .profile-card { transform: scale(1); }
+        .modal-overlay.active { display: flex; }
 
-        .message-bubble {
-            max-width: 85%;
-            animation: messageSlide 0.3s ease-out;
-        }
-
-        @keyframes messageSlide {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
+        .status-indicator {
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            display: inline-block;
+            border: 2px solid #0b0b0b;
         }
-        .status-online { background: #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
 
-        .pfp-wrap { position: relative; overflow: hidden; }
-        .pfp-wrap::after {
-            content: 'EDIT';
+        .pfp-editable {
+            position: relative;
+            cursor: pointer;
+        }
+        .pfp-editable::after {
+            content: 'CHANGE';
             position: absolute;
             inset: 0;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0,0,0,0.5);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 10px;
-            font-weight: 900;
+            font-weight: 800;
             opacity: 0;
-            transition: opacity 0.2s;
+            transition: 0.2s;
+            border-radius: inherit;
         }
-        .pfp-wrap.editable:hover::after { opacity: 1; cursor: pointer; }
-
-        input:focus { outline: none; border-color: var(--accent) !important; }
+        .pfp-editable:hover::after { opacity: 1; }
     </style>
 </head>
-<body class="flex p-4 gap-4">
-    <!-- Hidden Inputs -->
-    <input type="file" id="file-upload" class="hidden" accept="image/*,video/*,audio/*,.gif">
-    <input type="file" id="edit-pfp-input" class="hidden" accept="image/*">
-    <input type="file" id="edit-banner-input" class="hidden" accept="image/*">
+<body class="flex p-4 gap-4 h-screen">
 
-    <!-- Left Sidebar: Navigation & Users -->
-    <aside class="w-80 glass rounded-[2rem] flex flex-col overflow-hidden shrink-0 hidden lg:flex">
-        <div class="p-8 border-b border-zinc-800/50">
-            <div class="flex items-center gap-3 mb-6">
-                <div class="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"/>
-                    </svg>
-                </div>
-                <h1 class="font-900 text-2xl tracking-tighter uppercase italic bg-gradient-to-br from-white to-zinc-500 bg-clip-text text-transparent">Lounge</h1>
-            </div>
-            
-            <div class="relative group">
-                <input type="text" id="user-search" oninput="filterSidebar()" 
-                    class="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-5 py-3 text-xs font-semibold text-white placeholder:text-zinc-600 transition-all"
-                    placeholder="Search users...">
-                <svg class="w-4 h-4 absolute right-4 top-3.5 text-zinc-600 group-focus-within:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            </div>
+    <!-- Left Sidebar -->
+    <aside class="w-72 bg-[#121212] border border-zinc-800/50 rounded-3xl flex flex-col overflow-hidden">
+        <div class="p-6 border-b border-zinc-800/50">
+            <h1 class="text-xl font-800 italic tracking-tighter text-white">LOUNGE.</h1>
         </div>
 
-        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
-            <section>
-                <div class="flex items-center justify-between mb-4 px-2">
-                    <h3 class="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Active Now</h3>
-                    <span id="online-count" class="text-[10px] font-bold text-indigo-400 bg-indigo-400/10 px-2 py-0.5 rounded-full">0</span>
-                </div>
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
+            <div>
+                <h3 class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2 mb-4">Users Online — <span id="online-count">0</span></h3>
                 <div id="online-list" class="space-y-1"></div>
-            </section>
-
-            <section>
-                <div class="flex items-center justify-between mb-4 px-2">
-                    <h3 class="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Registered</h3>
-                </div>
-                <div id="offline-list" class="space-y-1 opacity-60"></div>
-            </section>
+            </div>
+            <div>
+                <h3 class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2 mb-4">Offline</h3>
+                <div id="offline-list" class="space-y-1 opacity-50"></div>
+            </div>
         </div>
 
-        <div class="p-6 border-t border-zinc-800/50 bg-zinc-900/20">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3 cursor-pointer group" onclick="openProfile(myProfile.username)">
-                    <div class="w-10 h-10 rounded-xl overflow-hidden bg-zinc-800 border border-white/5 transition-transform group-hover:scale-105">
-                        <img id="sidebar-my-pfp" src="" class="w-full h-full object-cover">
-                    </div>
-                    <div>
-                        <p id="sidebar-my-name" class="text-xs font-bold text-zinc-200 group-hover:text-indigo-400 transition-colors">User</p>
-                        <p class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">My Account</p>
-                    </div>
+        <!-- My Profile Bottom Left -->
+        <div class="p-4 bg-[#18181b] border-t border-zinc-800/50">
+            <div onclick="openProfile(myProfile.username)" class="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl cursor-pointer transition-all group">
+                <div class="relative">
+                    <img id="my-sidebar-pfp" src="" class="w-10 h-10 rounded-full object-cover border border-zinc-700">
+                    <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#18181b] rounded-full"></div>
                 </div>
-                <button onclick="logout()" class="p-2 text-zinc-600 hover:text-red-400 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                </button>
+                <div class="flex-1 overflow-hidden">
+                    <p id="my-sidebar-name" class="text-sm font-bold text-white truncate">Loading...</p>
+                    <p class="text-[10px] text-zinc-500 font-medium">Click to edit</p>
+                </div>
+                <svg class="w-4 h-4 text-zinc-600 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </div>
         </div>
     </aside>
 
-    <!-- Center: Main Chat Engine -->
-    <main class="flex-1 glass rounded-[2.5rem] flex flex-col overflow-hidden relative">
-        <!-- Chat Header -->
-        <header class="h-20 border-b border-zinc-800/50 flex items-center justify-between px-8 bg-zinc-900/10">
-            <div class="flex items-center gap-4">
-                <div class="status-dot status-online"></div>
-                <div>
-                    <h2 class="text-sm font-bold tracking-tight text-white">Public Gateway</h2>
-                    <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-0.5">End-to-End Encrypted</p>
-                </div>
+    <!-- Main Chat Area -->
+    <main class="flex-1 flex flex-col bg-[#121212] border border-zinc-800/50 rounded-3xl overflow-hidden">
+        <header class="p-6 border-b border-zinc-800/50 flex justify-between items-center bg-[#141414]">
+            <div>
+                <h2 class="font-bold text-white">General Chat</h2>
+                <p class="text-xs text-zinc-500">Welcome to the community</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="openStaffList()" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs font-bold transition-all">Staff</button>
+                <button onclick="logout()" class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl text-xs font-bold transition-all">Exit</button>
             </div>
         </header>
 
-        <!-- Messages Area -->
-        <div id="chat-scroller" class="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-6">
-            <!-- Messages load here -->
-            <div id="message-container" class="max-w-4xl mx-auto"></div>
+        <div id="chat-scroller" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+            <div id="message-container"></div>
         </div>
 
-        <!-- Input Bar -->
-        <div class="p-8 pt-0">
-            <div class="max-w-4xl mx-auto">
-                <form id="chat-form" class="flex items-center gap-4 bg-zinc-900/80 p-2.5 rounded-[1.8rem] border border-white/5 shadow-2xl focus-within:border-indigo-500/50 transition-all">
-                    <button type="button" onclick="triggerFileUpload()" class="w-12 h-12 flex items-center justify-center rounded-2xl text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    </button>
-                    <input type="text" id="msg-input" autocomplete="off" 
-                        class="flex-1 bg-transparent border-none py-3 text-sm text-zinc-200 placeholder:text-zinc-600" 
-                        placeholder="Share your thoughts...">
-                    <button type="submit" class="w-12 h-12 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/20 transition-all active:scale-95">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    </button>
-                </form>
-            </div>
+        <div class="p-6">
+            <form id="chat-form" class="bg-zinc-900/50 border border-zinc-800 rounded-2xl flex items-center p-2 gap-2">
+                <input type="file" id="file-input" class="hidden">
+                <button type="button" onclick="document.getElementById('file-input').click()" class="p-3 text-zinc-500 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                </button>
+                <input type="text" id="msg-input" placeholder="Type a message..." class="flex-1 bg-transparent border-none text-sm py-2 focus:ring-0">
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-xl text-sm font-bold transition-all">Send</button>
+            </form>
         </div>
     </main>
 
-    <!-- Right Sidebar: Shortcuts & Hub -->
-    <aside class="w-72 flex flex-col gap-4 shrink-0 hidden xl:flex">
-        <div class="glass rounded-[2.5rem] p-8 flex-1 flex flex-col gap-4">
-            <h3 class="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-2">Discovery Hub</h3>
-            
-            <div class="space-y-3">
-                <button onclick="openStaffMenu()" class="w-full group bg-emerald-500/5 border border-emerald-500/10 p-5 rounded-3xl flex items-center gap-4 hover:bg-emerald-500/10 transition-all">
-                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    </div>
-                    <div class="text-left">
-                        <p class="text-[13px] font-bold text-white">Staff Roster</p>
-                        <p class="text-[10px] font-bold text-emerald-500/60 uppercase tracking-widest">Management</p>
-                    </div>
-                </button>
-
-                <button onclick="openRules()" class="w-full group bg-amber-500/5 border border-amber-500/10 p-5 rounded-3xl flex items-center gap-4 hover:bg-amber-500/10 transition-all">
-                    <div class="w-12 h-12 rounded-2xl bg-amber-500/20 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                    </div>
-                    <div class="text-left">
-                        <p class="text-[13px] font-bold text-white">Code of Conduct</p>
-                        <p class="text-[10px] font-bold text-amber-500/60 uppercase tracking-widest">Legal</p>
-                    </div>
-                </button>
-
-                <div class="bg-zinc-900/50 rounded-3xl p-6 border border-white/5">
-                    <p class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">System Updates</p>
-                    <div class="space-y-3">
-                        <div class="flex gap-3">
-                            <div class="w-1 h-1 bg-indigo-500 rounded-full mt-1.5 shrink-0"></div>
-                            <p class="text-[11px] font-medium text-zinc-400">Fixed profile duplication when updating info.</p>
-                        </div>
-                        <div class="flex gap-3">
-                            <div class="w-1 h-1 bg-indigo-500 rounded-full mt-1.5 shrink-0"></div>
-                            <p class="text-[11px] font-medium text-zinc-400">Restored Rules and Staff dashboard.</p>
-                        </div>
-                    </div>
+    <!-- Profile Modal -->
+    <div id="profile-modal" class="modal-overlay">
+        <div class="bg-[#18181b] w-full max-w-md rounded-[2.5rem] overflow-hidden border border-zinc-800 shadow-2xl">
+            <div id="p-banner" class="h-32 bg-indigo-900 bg-cover bg-center"></div>
+            <div class="px-8 pb-8 text-center -mt-12">
+                <div class="inline-block relative">
+                    <img id="p-avatar" src="" class="w-24 h-24 rounded-3xl border-4 border-[#18181b] object-cover bg-zinc-800">
+                    <input type="file" id="pfp-upload" class="hidden" accept="image/*">
                 </div>
-            </div>
-        </div>
-    </aside>
-
-    <!-- Modal: Profile -->
-    <div id="profile-overlay" class="modal-overlay">
-        <div class="profile-card w-full max-w-md bg-zinc-900 rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl">
-            <div id="p-banner" class="h-40 bg-zinc-800 bg-cover bg-center pfp-wrap"></div>
-            
-            <div class="px-8 pb-10 text-center -mt-16 relative">
-                <div class="absolute right-8 top-20 flex gap-2">
-                    <button id="p-edit-btn" class="hidden p-3 bg-zinc-900/80 hover:bg-indigo-600 rounded-2xl border border-white/10 text-white transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                    </button>
-                    <button onclick="closeModal('profile-overlay')" class="p-3 bg-zinc-900/80 hover:bg-red-500 rounded-2xl border border-white/10 text-white transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-                </div>
-
-                <div class="relative inline-block mb-6">
-                    <div class="p-1.5 bg-zinc-900 rounded-[2.5rem] shadow-2xl">
-                        <div id="p-pfp-container" class="w-32 h-32 rounded-[2.2rem] border-[6px] border-zinc-900 overflow-hidden bg-zinc-800 pfp-wrap">
-                            <img id="p-pfp-img" src="" class="w-full h-full object-cover">
+                
+                <div id="p-view-mode" class="mt-4">
+                    <h2 id="p-name" class="text-2xl font-bold text-white">Username</h2>
+                    <div id="p-ranks" class="flex justify-center gap-2 mt-2"></div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mt-8">
+                        <div class="bg-zinc-900 p-4 rounded-2xl border border-zinc-800">
+                            <p class="text-[10px] font-bold text-zinc-500 uppercase">Identity</p>
+                            <p id="p-identity" class="text-sm font-semibold mt-1">?? / ?</p>
+                        </div>
+                        <div class="bg-zinc-900 p-4 rounded-2xl border border-zinc-800">
+                            <p class="text-[10px] font-bold text-zinc-500 uppercase">Likes</p>
+                            <p id="p-likes" class="text-sm font-semibold mt-1 text-pink-500">0</p>
                         </div>
                     </div>
-                    <button id="p-like-btn" class="absolute -right-2 bottom-2 p-3.5 bg-zinc-800 hover:bg-pink-600 border border-white/10 rounded-2xl shadow-xl transition-all group">
-                        <svg class="w-6 h-6 text-zinc-400 group-hover:text-white fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                    </button>
-                </div>
 
-                <!-- View Mode -->
-                <div id="p-view-mode">
-                    <h2 id="p-username" class="text-3xl font-800 tracking-tighter text-white mb-2 uppercase italic">USERNAME</h2>
-                    <div id="p-ranks" class="flex justify-center gap-2 mb-8"></div>
-
-                    <div class="grid grid-cols-3 gap-3 mb-2">
-                        <div class="bg-zinc-800/40 p-5 rounded-3xl border border-white/5">
-                            <p class="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1">Identity</p>
-                            <p id="p-stats-identity" class="text-xs font-bold text-zinc-200">?? / ?</p>
-                        </div>
-                        <div class="bg-zinc-800/40 p-5 rounded-3xl border border-white/5">
-                            <p class="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1">Impact</p>
-                            <p id="p-stats-likes" class="text-xs font-bold text-pink-500">0 Likes</p>
-                        </div>
-                        <div class="bg-zinc-800/40 p-5 rounded-3xl border border-white/5">
-                            <p class="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1">Status</p>
-                            <p id="p-stats-online" class="text-xs font-bold text-green-500">Active</p>
-                        </div>
+                    <div class="flex gap-2 mt-6">
+                        <button id="edit-profile-btn" class="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-2xl text-xs font-bold transition-all hidden">Edit Profile</button>
+                        <button onclick="closeModal('profile-modal')" class="px-6 py-3 bg-zinc-800 hover:bg-red-500/20 hover:text-red-500 rounded-2xl text-xs font-bold transition-all">Close</button>
                     </div>
                 </div>
 
-                <!-- Edit Mode -->
-                <div id="p-edit-mode" class="hidden text-left space-y-5 animate-in fade-in zoom-in-95">
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-2">Alias</label>
-                        <input type="text" id="edit-name" class="w-full bg-zinc-800/50 border border-white/5 rounded-2xl px-5 py-3 text-sm text-white focus:bg-zinc-800">
+                <div id="p-edit-mode" class="hidden mt-6 text-left space-y-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-zinc-500 uppercase px-2">Username</label>
+                        <input type="text" id="edit-username" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-sm mt-1">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="space-y-1.5">
-                            <label class="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-2">Age</label>
-                            <input type="number" id="edit-age" class="w-full bg-zinc-800/50 border border-white/5 rounded-2xl px-5 py-3 text-sm text-white focus:bg-zinc-800">
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase px-2">Age</label>
+                            <input type="number" id="edit-age" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-sm mt-1">
                         </div>
-                        <div class="space-y-1.5">
-                            <label class="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-2">Gender</label>
-                            <select id="edit-gender" class="w-full bg-zinc-800/50 border border-white/5 rounded-2xl px-5 py-3 text-sm text-white focus:bg-zinc-800">
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                                <option value="Other">Other</option>
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase px-2">Gender</label>
+                            <select id="edit-gender" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-sm mt-1">
+                                <option>Male</option>
+                                <option>Female</option>
+                                <option>Other</option>
                             </select>
                         </div>
                     </div>
-                    <button onclick="saveProfileChanges()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-3xl text-xs font-black uppercase tracking-[0.2em] shadow-lg shadow-indigo-600/20 transition-all">Synchronize Profile</button>
+                    <button onclick="saveProfile()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-sm font-bold shadow-lg shadow-indigo-600/20 transition-all">Update Identity</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal: Rules -->
-    <div id="rules-modal" class="modal-overlay">
-        <div class="w-full max-w-2xl bg-zinc-900 rounded-[3rem] border border-white/10 overflow-hidden shadow-2xl">
-            <div class="p-8 border-b border-zinc-800/50 flex justify-between items-center bg-zinc-900/50">
-                <div class="flex gap-6">
-                    <button id="rule-tab-member" onclick="switchRuleTab('member')" class="text-[11px] font-black uppercase tracking-widest text-indigo-400 border-b-2 border-indigo-400 pb-1">Member Code</button>
-                    <button id="rule-tab-staff" onclick="switchRuleTab('staff')" class="text-[11px] font-black uppercase tracking-widest text-zinc-600 hover:text-white pb-1 transition-colors">Staff Protocols</button>
-                </div>
-                <button onclick="closeModal('rules-modal')" class="text-zinc-500 hover:text-white transition-colors"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg></button>
-            </div>
-            <div id="rules-body" class="p-10 max-h-[60vh] overflow-y-auto custom-scrollbar space-y-6 text-sm text-zinc-400">
-                <!-- Content via JS -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: Staff List -->
+    <!-- Staff Modal -->
     <div id="staff-modal" class="modal-overlay">
-        <div class="w-full max-w-4xl bg-zinc-900 rounded-[3rem] border border-white/10 overflow-hidden shadow-2xl flex h-[75vh]">
-            <div class="w-64 border-r border-zinc-800/50 bg-zinc-900/50 p-8 flex flex-col gap-3">
-                <h3 class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4">Hierarchies</h3>
-                <div id="staff-rank-nav" class="space-y-1"></div>
+        <div class="bg-[#18181b] w-full max-w-2xl rounded-3xl overflow-hidden border border-zinc-800">
+            <div class="p-6 border-b border-zinc-800 flex justify-between items-center">
+                <h2 class="font-bold">Community Staff</h2>
+                <button onclick="closeModal('staff-modal')" class="text-zinc-500">Close</button>
             </div>
-            <div class="flex-1 flex flex-col">
-                <div class="p-8 border-b border-zinc-800/50 flex justify-between items-center bg-zinc-900/10">
-                    <h3 id="staff-rank-title" class="text-xs font-black uppercase tracking-widest text-white italic">Management</h3>
-                    <button onclick="closeModal('staff-modal')" class="text-zinc-500 hover:text-white transition-colors"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg></button>
-                </div>
-                <div id="staff-grid" class="p-8 flex-1 overflow-y-auto custom-scrollbar grid grid-cols-2 gap-4">
-                    <!-- Cards via JS -->
-                </div>
-            </div>
+            <div id="staff-list-container" class="p-6 grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto"></div>
         </div>
     </div>
 
     <script>
         const socket = io();
         
-        // --- Identity Persistence (Fix for double-users) ---
-        let clientId = localStorage.getItem('lounge_client_id');
+        // --- Unique Client Logic ---
+        let clientId = localStorage.getItem('lounge_cid');
         if (!clientId) {
-            clientId = crypto.randomUUID();
-            localStorage.setItem('lounge_client_id', clientId);
+            clientId = 'cl-' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('lounge_cid', clientId);
         }
 
         let myProfile = JSON.parse(localStorage.getItem('chat_profile')) || {
-            username: 'Guest' + Math.floor(Math.random() * 10000),
-            clientId: clientId
+            username: 'Guest' + Math.floor(Math.random() * 9999),
+            clientId: clientId,
+            avatar: '',
+            age: 18,
+            gender: 'Male',
+            likes: 0
         };
 
-        if (!localStorage.getItem('chat_profile')) {
-            window.location.href = '/'; // Redirect to login if not set
-        }
-
-        // --- Application State ---
         let onlineUsers = [];
-        let allRegisteredUsers = JSON.parse(localStorage.getItem('lounge_user_registry') || '[]');
-        let currentViewedUser = null;
-        let isEditing = false;
-        let likesMap = JSON.parse(localStorage.getItem('lounge_likes_central') || '{}');
-        let myLikes = JSON.parse(localStorage.getItem(`lounge_likes_${myProfile.username}`) || '[]');
+        let globalRegistry = JSON.parse(localStorage.getItem('lounge_registry') || '[]');
 
         const RANKS = [
-            { id: 'dev', label: 'Developer', keys: ['dev'], class: 'rank-dev' },
-            { id: 'ceo', label: 'CEO', keys: ['ceo'], class: 'rank-owner' },
-            { id: 'owner', label: 'Owner', keys: ['owner'], class: 'rank-owner' },
-            { id: 'admin', label: 'Admin', keys: ['admin', 'sadmin'], class: 'rank-dev' },
-            { id: 'mod', label: 'Moderator', keys: ['mod', 'moderator'], class: 'rank-helper' },
-            { id: 'helper', label: 'Helper', keys: ['helper'], class: 'rank-helper' },
-            { id: 'vip', label: 'VIP', keys: ['vip'], class: 'rank-member' }
+            { name: 'Dev', keys: ['dev'], class: 'rank-dev' },
+            { name: 'Owner', keys: ['owner', 'ceo'], class: 'rank-owner' },
+            { name: 'Member', keys: [], class: 'rank-member' }
         ];
 
-        // --- Core Functions ---
-        const getPfp = (user) => user?.avatar || `https://ui-avatars.com/api/?name=${user?.username}&background=27272a&color=fff&bold=true`;
-        
-        function getRankHtml(username) {
-            const u = username.toLowerCase();
+        function getPfp(user) {
+            return user?.avatar || `https://ui-avatars.com/api/?name=${user?.username}&background=3f3f46&color=fff&bold=true`;
+        }
+
+        function getRank(name) {
+            const low = name.toLowerCase();
             for (const r of RANKS) {
-                if (r.keys.some(k => u.includes(k))) {
-                    return `<span class="rank-badge ${r.class}"><div class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></div>${r.label}</span>`;
-                }
+                if (r.keys.some(k => low.includes(k))) return r;
             }
-            return `<span class="rank-badge rank-member">Member</span>`;
+            return RANKS[2];
         }
 
-        // --- Profile Management ---
-        function openProfile(username) {
-            const user = allRegisteredUsers.find(u => u.username === username) || onlineUsers.find(u => u.username === username) || { username };
-            currentViewedUser = user;
-            isEditing = false;
+        // --- Profile UI Updates ---
+        function updateMyLocalUI() {
+            document.getElementById('my-sidebar-name').innerText = myProfile.username;
+            document.getElementById('my-sidebar-pfp').src = getPfp(myProfile);
+        }
 
-            const isMe = user.username === myProfile.username;
-            document.getElementById('p-view-mode').classList.remove('hidden');
-            document.getElementById('p-edit-mode').classList.add('hidden');
-            document.getElementById('p-edit-btn').classList.toggle('hidden', !isMe);
+        function openProfile(name) {
+            const user = globalRegistry.find(u => u.username === name) || onlineUsers.find(u => u.username === name) || { username: name };
+            const isMe = user.clientId === myProfile.clientId || user.username === myProfile.username;
 
-            // Update UI
-            document.getElementById('p-username').innerText = user.username;
-            document.getElementById('p-ranks').innerHTML = getRankHtml(user.username);
-            document.getElementById('p-pfp-img').src = getPfp(user);
-            document.getElementById('p-stats-identity').innerText = `${user.age || '??'} / ${user.gender || '?'}`;
-            document.getElementById('p-stats-likes').innerText = `${likesMap[user.username] || 0} Likes`;
+            document.getElementById('p-name').innerText = user.username;
+            document.getElementById('p-avatar').src = getPfp(user);
+            document.getElementById('p-identity').innerText = `${user.age || '??'} / ${user.gender || '?'}`;
+            document.getElementById('p-likes').innerText = user.likes || 0;
             
-            const isOnline = onlineUsers.some(u => u.username === username);
-            document.getElementById('p-stats-online').innerText = isOnline ? 'Active' : 'Offline';
-            document.getElementById('p-stats-online').className = isOnline ? 'text-xs font-bold text-green-500' : 'text-xs font-bold text-zinc-500';
+            const rank = getRank(user.username);
+            document.getElementById('p-ranks').innerHTML = `<span class="rank-badge ${rank.class}">${rank.name}</span>`;
 
-            const banner = document.getElementById('p-banner');
-            banner.style.backgroundImage = user.banner ? `url(${user.banner})` : '';
-            banner.style.backgroundColor = user.banner ? 'transparent' : '#1e1b4b';
-
-            updateLikeButtonState();
-            document.getElementById('profile-overlay').classList.add('active');
-        }
-
-        function toggleEditMode() {
-            isEditing = !isEditing;
-            const view = document.getElementById('p-view-mode');
-            const edit = document.getElementById('p-edit-mode');
-            const pfpWrap = document.getElementById('p-pfp-container');
-            const bannerWrap = document.getElementById('p-banner');
-
-            if (isEditing) {
-                view.classList.add('hidden');
-                edit.classList.remove('hidden');
-                pfpWrap.classList.add('editable');
-                bannerWrap.classList.add('editable');
-                document.getElementById('edit-name').value = myProfile.username;
-                document.getElementById('edit-age').value = myProfile.age || '';
-                document.getElementById('edit-gender').value = myProfile.gender || 'Male';
-            } else {
-                view.classList.remove('hidden');
-                edit.classList.add('hidden');
-                pfpWrap.classList.remove('editable');
-                bannerWrap.classList.remove('editable');
-            }
-        }
-
-        document.getElementById('p-edit-btn').onclick = toggleEditMode;
-        document.getElementById('p-pfp-container').onclick = () => isEditing && document.getElementById('edit-pfp-input').click();
-        document.getElementById('p-banner').onclick = () => isEditing && document.getElementById('edit-banner-input').click();
-
-        function setupImageUpload(inputEl, key) {
-            inputEl.onchange = (e) => {
+            document.getElementById('edit-profile-btn').classList.toggle('hidden', !isMe);
+            document.getElementById('edit-profile-btn').onclick = () => toggleEdit(true);
+            
+            // Handle PFP upload trigger
+            document.getElementById('p-avatar').onclick = () => isMe && document.getElementById('pfp-upload').click();
+            document.getElementById('pfp-upload').onchange = (e) => {
                 const file = e.target.files[0];
-                if (!file) return;
                 const reader = new FileReader();
                 reader.onload = (ev) => {
-                    myProfile[key] = ev.target.result;
-                    if(key === 'avatar') document.getElementById('p-pfp-img').src = ev.target.result;
-                    if(key === 'banner') document.getElementById('p-banner').style.backgroundImage = `url(${ev.target.result})`;
+                    myProfile.avatar = ev.target.result;
+                    document.getElementById('p-avatar').src = ev.target.result;
                 };
                 reader.readAsDataURL(file);
             };
-        }
-        setupImageUpload(document.getElementById('edit-pfp-input'), 'avatar');
-        setupImageUpload(document.getElementById('edit-banner-input'), 'banner');
 
-        function saveProfileChanges() {
-            const oldName = myProfile.username;
-            const newName = document.getElementById('edit-name').value.trim();
-            
-            if (newName) myProfile.username = newName;
+            toggleEdit(false);
+            document.getElementById('profile-modal').classList.add('active');
+        }
+
+        function toggleEdit(show) {
+            document.getElementById('p-view-mode').classList.toggle('hidden', show);
+            document.getElementById('p-edit-mode').classList.toggle('hidden', !show);
+            document.getElementById('p-avatar').classList.toggle('pfp-editable', show);
+            if(show) {
+                document.getElementById('edit-username').value = myProfile.username;
+                document.getElementById('edit-age').value = myProfile.age;
+                document.getElementById('edit-gender').value = myProfile.gender;
+            }
+        }
+
+        function saveProfile() {
+            const newName = document.getElementById('edit-username').value.trim();
+            if(!newName) return;
+
+            myProfile.username = newName;
             myProfile.age = document.getElementById('edit-age').value;
             myProfile.gender = document.getElementById('edit-gender').value;
 
             localStorage.setItem('chat_profile', JSON.stringify(myProfile));
+            socket.emit('updateProfile', myProfile); // Tell server we changed
             
-            // Critical: Emit update event to server
-            socket.emit('updateProfile', myProfile);
-            
-            toggleEditMode();
+            updateMyLocalUI();
             openProfile(myProfile.username);
         }
 
-        // --- Engagement: Likes ---
-        function updateLikeButtonState() {
-            const btn = document.getElementById('p-like-btn');
-            const icon = btn.querySelector('svg');
-            if (myLikes.includes(currentViewedUser.username)) {
-                btn.classList.add('bg-pink-600', 'border-pink-500');
-                icon.classList.add('text-white');
-                icon.classList.remove('text-zinc-400');
-            } else {
-                btn.classList.remove('bg-pink-600', 'border-pink-500');
-                icon.classList.remove('text-white');
-                icon.classList.add('text-zinc-400');
-            }
-        }
-
-        document.getElementById('p-like-btn').onclick = () => {
-            const target = currentViewedUser.username;
-            if (myLikes.includes(target)) {
-                myLikes = myLikes.filter(x => x !== target);
-                likesMap[target] = Math.max(0, (likesMap[target] || 1) - 1);
-            } else {
-                myLikes.push(target);
-                likesMap[target] = (likesMap[target] || 0) + 1;
-            }
-            localStorage.setItem(`lounge_likes_${myProfile.username}`, JSON.stringify(myLikes));
-            localStorage.setItem('lounge_likes_central', JSON.stringify(likesMap));
-            document.getElementById('p-stats-likes').innerText = `${likesMap[target]} Likes`;
-            updateLikeButtonState();
-        };
-
-        // --- Navigation: Rules & Staff ---
-        function openRules() {
-            document.getElementById('rules-modal').classList.add('active');
-            switchRuleTab('member');
-        }
-
-        function switchRuleTab(tab) {
-            const body = document.getElementById('rules-body');
-            const mTab = document.getElementById('rule-tab-member');
-            const sTab = document.getElementById('rule-tab-staff');
-
-            if (tab === 'member') {
-                mTab.className = "text-[11px] font-black uppercase tracking-widest text-indigo-400 border-b-2 border-indigo-400 pb-1";
-                sTab.className = "text-[11px] font-black uppercase tracking-widest text-zinc-600 hover:text-white pb-1 transition-colors";
-                body.innerHTML = `
-                    <div class="space-y-6">
-                        <div class="bg-zinc-800/30 p-6 rounded-3xl border border-white/5">
-                            <h4 class="text-white font-bold mb-2">1. Respect Protocol</h4>
-                            <p>Discriminatory language, harassment, or persistent toxicity will result in an immediate session termination.</p>
-                        </div>
-                        <div class="bg-zinc-800/30 p-6 rounded-3xl border border-white/5">
-                            <h4 class="text-white font-bold mb-2">2. Visual Integrity</h4>
-                            <p>NSFW or Gore content in avatars, banners, or public chat channels is strictly prohibited.</p>
-                        </div>
-                        <div class="bg-zinc-800/30 p-6 rounded-3xl border border-white/5">
-                            <h4 class="text-white font-bold mb-2">3. Channel Flooding</h4>
-                            <p>Automated scripts or manual spamming of text/files disrupts the experience for everyone.</p>
-                        </div>
-                    </div>
-                `;
-            } else {
-                sTab.className = "text-[11px] font-black uppercase tracking-widest text-indigo-400 border-b-2 border-indigo-400 pb-1";
-                mTab.className = "text-[11px] font-black uppercase tracking-widest text-zinc-600 hover:text-white pb-1 transition-colors";
-                body.innerHTML = `
-                    <div class="space-y-6">
-                        <div class="bg-indigo-500/10 p-6 rounded-3xl border border-indigo-500/20">
-                            <h4 class="text-indigo-400 font-bold mb-2">Hierarchy Protocol</h4>
-                            <p>Higher ranks must provide guidance to lower ranks. Power-tripping or unauthorized bans are subject to demotion.</p>
-                        </div>
-                        <div class="bg-zinc-800/30 p-6 rounded-3xl border border-white/5">
-                            <h4 class="text-white font-bold mb-2">Administrative Logging</h4>
-                            <p>All bans and kicks must be justifiable and will be reviewed by the Management team weekly.</p>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-
-        function openStaffMenu() {
-            const nav = document.getElementById('staff-rank-nav');
-            nav.innerHTML = RANKS.map(r => `
-                <button onclick="filterStaffGrid('${r.id}')" class="w-full text-left px-5 py-3.5 rounded-2xl border border-white/5 text-[10px] font-black uppercase tracking-widest flex justify-between items-center group hover:bg-white/5 transition-all">
-                    <span>${r.label}s</span>
-                    <svg class="w-3 h-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
-                </button>
-            `).join('');
-            document.getElementById('staff-modal').classList.add('active');
-            filterStaffGrid('dev');
-        }
-
-        function filterStaffGrid(rankId) {
-            const rank = RANKS.find(r => r.id === rankId);
-            const grid = document.getElementById('staff-grid');
-            document.getElementById('staff-rank-title').innerText = `${rank.label} Division`;
-            
-            // Filter from the "Global Registry" (anyone who has logged in)
-            const staff = allRegisteredUsers.filter(u => rank.keys.some(k => u.username.toLowerCase().includes(k)));
-
-            if (staff.length === 0) {
-                grid.innerHTML = `<div class="col-span-2 text-center py-20 opacity-20 font-black italic uppercase tracking-widest">No Active Personnel</div>`;
-                return;
-            }
-
-            grid.innerHTML = staff.map(u => `
-                <div onclick="openProfile('${u.username}'); closeModal('staff-modal')" class="bg-zinc-800/30 p-5 rounded-3xl border border-white/5 flex items-center gap-4 hover:bg-zinc-800 transition-all cursor-pointer">
-                    <div class="w-12 h-12 rounded-2xl overflow-hidden shadow-lg">
-                        <img src="${getPfp(u)}" class="w-full h-full object-cover">
-                    </div>
-                    <div>
-                        <p class="text-xs font-bold text-white uppercase italic">${u.username}</p>
-                        <p class="text-[9px] font-bold text-zinc-500 uppercase tracking-tighter mt-0.5">Verified Staff</p>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // --- Networking ---
-        let pendingFileData = null;
-        function triggerFileUpload() { document.getElementById('file-upload').click(); }
-        document.getElementById('file-upload').onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                pendingFileData = { data: ev.target.result, type: file.type, name: file.name };
-                document.getElementById('msg-input').value = `[Attaching: ${file.name}] ` + document.getElementById('msg-input').value;
-            };
-            reader.readAsDataURL(file);
-        };
-
-        document.getElementById('chat-form').onsubmit = (e) => {
-            e.preventDefault();
-            const input = document.getElementById('msg-input');
-            let text = input.value;
-
-            // Remove attachment label if present
-            if (pendingFileData) {
-                text = text.replace(/^\[Attaching: .+?\] /, '').trim();
-            }
-
-            if (text.trim() || pendingFileData) {
-                socket.emit('sendMessage', {
-                    ...myProfile,
-                    text: text,
-                    file: pendingFileData?.data,
-                    fileType: pendingFileData?.type
-                });
-                input.value = '';
-                pendingFileData = null;
-            }
-        };
-
-        socket.on('message', (payload) => {
+        // --- Core Socket Events ---
+        socket.on('message', (msg) => {
             const container = document.getElementById('message-container');
             const div = document.createElement('div');
-            
-            if (payload.system) {
-                div.className = "flex justify-center my-4";
-                div.innerHTML = `<span class="px-4 py-1.5 bg-zinc-900/50 rounded-full text-[9px] font-black text-zinc-600 uppercase tracking-widest border border-white/5">${payload.text}</span>`;
-            } else {
-                const isMe = payload.clientId === myProfile.clientId;
-                div.className = `flex gap-4 mb-6 ${isMe ? 'flex-row-reverse' : ''}`;
-                div.innerHTML = `
-                    <div class="shrink-0 cursor-pointer" onclick="openProfile('${payload.username}')">
-                        <div class="w-10 h-10 rounded-2xl overflow-hidden bg-zinc-800 shadow-xl">
-                            <img src="${getPfp(payload)}" class="w-full h-full object-cover">
-                        </div>
-                    </div>
-                    <div class="message-bubble ${isMe ? 'items-end' : 'items-start'} flex flex-col gap-1.5">
-                        <div class="flex items-center gap-2 ${isMe ? 'flex-row-reverse' : ''}">
-                            <span class="text-[10px] font-black text-zinc-500 uppercase italic">${payload.username}</span>
-                            ${getRankHtml(payload.username)}
-                        </div>
-                        <div class="p-4 rounded-3xl ${isMe ? 'bg-indigo-600 text-white rounded-tr-none shadow-indigo-600/10' : 'bg-zinc-800/60 text-zinc-200 rounded-tl-none border border-white/5'} shadow-xl">
-                            ${payload.text ? `<p class="text-sm leading-relaxed">${payload.text}</p>` : ''}
-                            ${payload.file ? renderAttachment(payload) : ''}
-                        </div>
-                    </div>
-                `;
-            }
-            container.appendChild(div);
-            document.getElementById('chat-scroller').scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
-        });
+            const isMe = msg.clientId === myProfile.clientId;
 
-        function renderAttachment(p) {
-            if (p.fileType.startsWith('image/')) return `<img src="${p.file}" class="max-w-full rounded-2xl mt-3 border border-white/10">`;
-            if (p.fileType.startsWith('video/')) return `<video controls src="${p.file}" class="max-w-full rounded-2xl mt-3 border border-white/10"></video>`;
-            return `<a href="${p.file}" download class="block p-3 mt-3 bg-black/20 rounded-xl text-xs flex items-center gap-2">📂 Attachment</a>`;
-        }
+            div.className = `flex gap-4 mb-4 ${isMe ? 'flex-row-reverse' : ''}`;
+            div.innerHTML = `
+                <img src="${getPfp(msg)}" onclick="openProfile('${msg.username}')" class="w-9 h-9 rounded-full cursor-pointer object-cover">
+                <div class="flex flex-col ${isMe ? 'items-end' : ''}">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-[10px] font-bold text-zinc-500 uppercase">${msg.username}</span>
+                    </div>
+                    <div class="chat-bubble ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-zinc-800 text-zinc-200 rounded-tl-none'}">
+                        ${msg.text}
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+            document.getElementById('chat-scroller').scrollTop = document.getElementById('chat-scroller').scrollHeight;
+        });
 
         socket.on('userListUpdate', (users) => {
             onlineUsers = users;
             document.getElementById('online-count').innerText = users.length;
-            
-            // Sync Global Registry (Offline Users)
+
+            // Update my local object if I'm in the list (keeps me synced with server view)
+            const meInList = users.find(u => u.clientId === clientId);
+            if (meInList) {
+                myProfile = {...myProfile, ...meInList};
+                updateMyLocalUI();
+            }
+
+            // Sync Registry
             users.forEach(u => {
-                if (!allRegisteredUsers.find(r => r.username === u.username)) {
-                    allRegisteredUsers.push(u);
-                } else {
-                    // Update existing record with new data (like pfp)
-                    const idx = allRegisteredUsers.findIndex(r => r.username === u.username);
-                    allRegisteredUsers[idx] = u;
-                }
+                const idx = globalRegistry.findIndex(r => r.clientId === u.clientId);
+                if (idx > -1) globalRegistry[idx] = u;
+                else globalRegistry.push(u);
             });
-            localStorage.setItem('lounge_user_registry', JSON.stringify(allRegisteredUsers));
+            localStorage.setItem('lounge_registry', JSON.stringify(globalRegistry));
 
-            // Render Online
-            const onlineList = document.getElementById('online-list');
-            onlineList.innerHTML = users.map(u => `
-                <div onclick="openProfile('${u.username}')" class="flex items-center gap-3 p-3 hover:bg-white/5 rounded-2xl transition-all cursor-pointer group">
-                    <div class="relative">
-                        <div class="w-9 h-9 rounded-xl overflow-hidden bg-zinc-800 border border-white/5">
-                            <img src="${getPfp(u)}" class="w-full h-full object-cover">
-                        </div>
-                        <div class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-[3px] border-[#101014] rounded-full"></div>
-                    </div>
+            // Render Sidebar Online
+            document.getElementById('online-list').innerHTML = users.map(u => `
+                <div onclick="openProfile('${u.username}')" class="flex items-center gap-3 p-2 sidebar-item cursor-pointer">
+                    <img src="${getPfp(u)}" class="w-8 h-8 rounded-full object-cover">
                     <div class="flex-1 overflow-hidden">
-                        <p class="text-xs font-bold text-zinc-300 truncate group-hover:text-white">${u.username}</p>
-                        <p class="text-[9px] font-bold text-zinc-500 uppercase tracking-tighter">Active</p>
+                        <p class="text-xs font-semibold text-zinc-300 truncate">${u.username}</p>
                     </div>
+                    <div class="status-indicator bg-green-500"></div>
                 </div>
             `).join('');
 
-            // Render Offline
-            const offlineList = document.getElementById('offline-list');
-            const offUsers = allRegisteredUsers.filter(u => !users.some(on => on.username === u.username));
-            offlineList.innerHTML = offUsers.map(u => `
-                <div onclick="openProfile('${u.username}')" class="flex items-center gap-3 p-3 hover:bg-white/5 rounded-2xl transition-all cursor-pointer group grayscale">
-                    <div class="w-9 h-9 rounded-xl overflow-hidden bg-zinc-800 border border-white/5">
-                        <img src="${getPfp(u)}" class="w-full h-full object-cover">
-                    </div>
-                    <div class="flex-1 overflow-hidden">
-                        <p class="text-xs font-bold text-zinc-400 truncate">${u.username}</p>
-                    </div>
+            // Render Sidebar Offline
+            const off = globalRegistry.filter(r => !users.some(u => u.clientId === r.clientId));
+            document.getElementById('offline-list').innerHTML = off.map(u => `
+                <div onclick="openProfile('${u.username}')" class="flex items-center gap-3 p-2 sidebar-item cursor-pointer">
+                    <img src="${getPfp(u)}" class="w-8 h-8 rounded-full grayscale object-cover">
+                    <p class="text-xs font-semibold text-zinc-500 truncate">${u.username}</p>
                 </div>
             `).join('');
-
-            // Sync self
-            const me = users.find(u => u.clientId === clientId) || myProfile;
-            myProfile = me;
-            document.getElementById('sidebar-my-name').innerText = me.username;
-            document.getElementById('sidebar-my-pfp').src = getPfp(me);
         });
 
-        // Initialize
-        socket.emit('join', myProfile);
+        function openStaffList() {
+            const staff = globalRegistry.filter(u => getRank(u.username).name !== 'Member');
+            document.getElementById('staff-list-container').innerHTML = staff.map(u => `
+                <div class="bg-zinc-900 p-4 rounded-2xl border border-zinc-800 flex items-center gap-3">
+                    <img src="${getPfp(u)}" class="w-10 h-10 rounded-full object-cover">
+                    <div>
+                        <p class="text-sm font-bold">${u.username}</p>
+                        <span class="rank-badge ${getRank(u.username).class}">${getRank(u.username).name}</span>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('staff-modal').classList.add('active');
+        }
+
+        document.getElementById('chat-form').onsubmit = (e) => {
+            e.preventDefault();
+            const input = document.getElementById('msg-input');
+            if (!input.value.trim()) return;
+            socket.emit('sendMessage', { ...myProfile, text: input.value });
+            input.value = '';
+        };
 
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
         function logout() { localStorage.clear(); window.location.reload(); }
 
-        function filterSidebar() {
-            const q = document.getElementById('user-search').value.toLowerCase();
-            document.querySelectorAll('#online-list > div, #offline-list > div').forEach(el => {
-                el.style.display = el.innerText.toLowerCase().includes(q) ? 'flex' : 'none';
-            });
-        }
+        // Join
+        socket.emit('join', myProfile);
+        updateMyLocalUI();
     </script>
 </body>
 </html>
